@@ -1,0 +1,137 @@
+# The grammar of grok version 0.1 in BNF.
+# This grammar may not be entirely complete.
+# Several place holders are not defined:
+# <identifier>, <integer_constant>, and <float_constant> as they are more easily
+# described using regular expressions and are very straight forward at that.
+
+# Top level statements.
+<top_level_statement> ::= <function_definition> 
+                        | <method_defintion> 
+                        | <struct_definition>
+                        | <union_defintion>
+                        | <interface_definition>
+                        | <instance>
+                        | <statement>
+
+<function_definition> ::= "func" "<" <type_parameter_list> ">" <identifier> "(" <parameter_definition_list> ")" ":" <type> "=" <expression>
+                        | "func" <identifier> "(" <parameter_definition_list> ")" ":" <type> "=" <expression>
+
+<method_defintion> ::= "meth" "<" <type_parameter_list> ">" "(" <identifier> ")" <identifier> "(" <parameter_definition_list> ")" ":" <type> "=" <expression>
+                     | "meth" "(" <identifier> ")" <identifier> "(" <parameter_definition_list> ")" ":" <type> "=" <expression>
+
+<struct_definition> ::= "struct" <identifier> "<" <type_parameter_list> ">" "{" <field_declaration_list> "}"
+
+<union_defintion> ::= "union" <type> "{" <union_type_list> "}"
+
+<interface_definition> ::= "interface" <type> "{" <extends_list> <stub_list> "}"
+
+<instance> ::= "instance" <type> "of" <type> "{" <function_or_method_instance_list> "}"
+
+<statement> ::= <variable_declaration>
+              | <variable_assignment>
+              | <if_expression>
+              | <while_expression>
+              | <match_expression>
+              | <function_call>
+              | <method_call>
+
+# Expressions.
+<expression> ::= <if_expression>
+               | <while_expression>
+               | <match_expression>
+               | <function_call>
+               | <method_call>
+               | <block>
+               | <lambda>
+               | <boolean_expression>
+               | <arithmetic_expression>
+               | <variable>
+
+# Might want to consider leaving out if only and make that a <if_statement>.
+<if_expression> ::= "if" <boolean_expression> <block> #<if_statement> only.
+                  | "if" <boolean_expression> <block> "else" <if_expression>
+                  | "if" <boolean_expression> <block> "else" <block>
+
+# Might want to have a <while_block> instead of just <block>.
+<while_expression> ::= "while" <boolean_expression> <block>
+
+<match_expression> ::= "match" "(" <expression> ")" "{" <case_list> "}"
+
+<function_call> ::= <identifier> "(" <parameter_call_list> ")"
+
+<method_call> ::= <expression> "." <identifier> "(" <parameter_call_list> ")"
+
+# Might want to consider differentiating between <block_expression> and
+# <block_statement> since it would not make sense for an <if_statement> to have
+# a <block_expression> body, or a <if_expression> to have an <block_statement>
+# body.
+<block> ::= "{" <statement_list> "}" #<block_statement>
+          | "{" <statement_list> <expression> "}" #<block_expression>
+
+<lambda> ::= "(" <parameter_definition_type_optional_list> ")" "=>" <expression>
+           | <parameter_definition_type_optional> "=>" <expression>
+
+<boolean_expression> ::= <boolean_expression> "||" <boolean_product>
+                       | <boolean_product>
+
+<boolean_product> ::= <boolean_product> "&&" <boolean_term>
+                    | <boolean_term>
+
+<boolean_term> ::= "(" <boolean_expression> ")"
+                 | <comparison>
+                 | <function_call> # Type-check needed.
+                 | <method_call> # Type-check needed.
+                 | <variable> # Type-check needed.
+                 | <boolean_constant>
+
+<boolean_constant> ::= "true" | "false"
+
+<arithmetic_expression> ::= <arithmetic_expression> "+" <arithmetic_product>
+                          | <arithmetic_expression> "-" <arithmetic_product>
+                          | <arithmetic_product>
+
+<arithmetic_product> ::= <arithmetic_product> "*" <arithmetic_term>
+                       | <arithmetic_product> "/" <arithmetic_term>
+                       | <arithmetic_term>
+
+<arithmetic_term> ::= "(" <arithmetic_expression> ")"
+| <function_call> # Type-check needed.
+| <method_call> # Type-check needed.
+| <variable> # Type-check needed.
+| <arithmetic_constant>
+
+# Here <integer_constant> and <float_constant> are left intentionally
+# undefined as they are easier to define using regular expressions.
+<arithmetic_constant> ::= <integer_constant> | <float_constant>
+
+# Other stuff.
+<type_parameter_list> ::= <type_parameter_list> "," <type>
+                        | <type>
+
+<type> ::= <identifier>
+         | <identifier> "<" <type_parameter_list> ">"
+
+<parameter_definition_list> ::= <parameter_definition_list> "," <parameter_definition>
+                              | <parameter_definition>
+
+<parameter_definition> ::= <identifier> ":" <type>
+
+<parameter_definition_type_optional_list> ::= <parameter_definition_type_optional_list> "," <parameter_definition_type_optional>
+                                            | <parameter_definition_type_optional>
+
+<parameter_definition_type_optional> ::= <identifier>
+                                       | <identifier> ":" <type>
+
+<variable_declaration> ::= "val" <identifier> "=" <expression>
+                         | "val" <identifier> ":" <type> "=" <expression>
+                         | "var" <identifier> "=" <expression>
+                         | "var" <identifier> ":" <type> "=" <expression>
+
+<variable_assignment> ::= <identifier> "=" <expression>
+
+<variable> ::= <identifier>
+
+<case_list> ::= <case_list> <case_expression>
+
+<case_expression> ::= "case" <identifier> "(" <parameter_definition_list> ")" "=>" <expression>
+                    | "case" <parameter_definition> "=>" <expression>
