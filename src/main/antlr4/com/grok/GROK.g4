@@ -1,136 +1,238 @@
-grammar GROK;
+grammar Grok;
 
-topLevelStatement : functionDefinition
-                        | methodDefintion 
-                        | structDefinition
-                        | unionDefintion
-                        | interfaceDefinition
-                        | instance
-                        | statement;
+@header {
+  package com.grok;
+}
 
-functionDefinition : 'func' '<' typeParameterList '>' identifier '(' parameterDefinitionList ')' ':' type '=' expression
-                        | 'func' identifier '(' parameterDefinitionList ')' ':' type '=' expression;
+@parser::members {
+  // We need to be able to check whether the next token parsed is a
+  // LineTerminator so that we can determine the end of statements.
+  private boolean lineTerminatorAhead() {
+    int possibleEosTokenIndex = getCurrentToken().getTokenIndex() - 1;
+    Token possibleEosToken = _input.get(possibleEosTokenIndex);
+    int type = possibleEosToken.getType();
+    return type == LineTerminator;
+  }
+}
 
-methodDefintion : 'meth' '<' typeParameterList '>' '(' identifier ')' identifier '(' parameterDefinitionList ')' ':' type '=' expression
-                     | 'meth' '(' identifier ')' identifier '(' parameterDefinitionList ')' ':' type '=' expression;
+compilationUnit
+  : topLevelStatement* EOF
+  ;
 
-structDefinition : 'struct' identifier '<' typeParameterList '>' '{' fieldDeclarationList '}';
+topLevelStatement 
+  : (functionDefinition
+    | methodDefintion 
+    | structDefinition
+    | unionDefintion
+    | interfaceDefinition
+    | instance
+    | statement
+    ) eos
+  ;
 
-unionDefintion : 'union' type '{' unionTypeList '}';
+functionDefinition
+  : 'func' typeParameters? Identifier funcParameters ':' type '=' expression
+  ;
 
-interfaceDefinition : 'interface' type '{' extendsList stubList '}';
+methodDefintion
+  : 'meth' typeParameters? '(' type ')' Identifier funcParameters ':' type '=' expression
+  ;
 
-instance : 'instance' type 'of' type '{' functionOrMethodInstanceList '}';
+structDefinition
+  : 'struct' typeParameters? Identifier '{' field* '}'
+  ;
 
-statement : variableDeclaration
-              | variableAssignment
-              | ifExpression
-              | whileExpression
-              | matchExpression
-              | functionCall
-              | methodCall;
+unionDefintion
+  : 'union' typeParameters? Identifier '{' type* '}'
+  ;
 
-// Expressions.
-expression : ifExpression
-               | whileExpression
-               | matchExpression
-               | functionCall
-               | methodCall
-               | block
-               | lambda
-               | booleanExpression
-               | arithmeticExpression
-               | variable;
+interfaceDefinition
+  : 'interface' typeParameters? Identifier ('extends' type)? '{' methodStub* '}'
+  ;
 
-// Might want to consider leaving out if only and make that a if_statement.
-ifExpression : 'if' booleanExpression block //if_statement only.
-                  | 'if' booleanExpression block 'else' ifExpression
-                  | 'if' booleanExpression block 'else' block;
+instance
+  : 'instance' typeParameters? type 'of' type '{' instanceMethod* '}'
+  ;
 
-// Might want to have a while_block instead of just block.
-whileExpression : 'while' booleanExpression block;
+typeParameters
+  : '<' type+ '>'
+  ;
 
-matchExpression : 'match' '(' expression ')' '{' caseList '}';
+type
+  : Identifier typeParameters?
+  ;
 
-functionCall : identifier '(' parameterCallList ')';
+funcParameters
+  : '(' ((funcParameter ',')* funcParameter)? ')'
+  ;
 
-methodCall : expression '.' identifier '(' parameterCallList ')';
+funcParameter
+  : Identifier ':' type
+  ;
 
-// Might want to consider differentiating between block_expression and
-// block_statement since it would not make sense for an if_statement to have
-// a block_expression body, or a if_expression to have an block_statement
-// body.
-block : '{' statementList '}' //block_statement
-          | '{' statementList expression '}'; //block_expression
+field
+  : ('var' | 'val') Identifier ':' type
+  ;
 
-lambda : '(' parameterDefinitionTypeOptionalList ')' '=>' expression
-           | parameterDefinitionTypeOptional '=>' expression;
+methodStub
+  : 'meth' typeParameters? Identifier funcParameters ':' type
+  ;
 
-booleanExpression : booleanExpression '||' booleanProduct
-                       | booleanProduct;
+instanceMethod
+  : 'meth' typeParameters? Identifier funcParameters ':' type '=' expression
+  ;
 
-booleanProduct : booleanProduct '&&' booleanTerm
-                    | booleanTerm;
+innerStatement
+  : variableDeclaration
+  | variableAssignment
+  | structAssignment
+  | ifExpression
+  | whileExpression
+  | matchExpression
+  | functionCall
+  | methodCall
+  ;
 
-booleanTerm : '(' booleanExpression ')'
-                 | comparison
-                 | functionCall // Type-check needed.
-                 | methodCall // Type-check needed.
-                 | variable // Type-check needed.
-                 | BOOLEAN_CONSTANT;
+statement
+  : innerStatement eos
+  ;
 
-BOOLEAN_CONSTANT : 'true' | 'false';
+variableDeclaration
+  : ('var' | 'val') Identifier (':' type) '=' expression
+  ;
 
-arithmeticExpression : arithmeticExpression '+' arithmeticProduct
-                          | arithmeticExpression '-' arithmeticProduct
-                          | arithmeticProduct;
+variableAssignment
+  : Identifier '=' expression
+  ;
 
-arithmeticProduct : arithmeticProduct '*' arithmeticTerm
-                       | arithmeticProduct '/' arithmeticTerm
-                       | arithmeticTerm;
+structAssignment
+  : Identifier '.' Identifier '=' expression
+  ;
 
-arithmeticTerm : '(' arithmeticExpression ')'
-| functionCall // Type-check needed.
-| methodCall // Type-check needed.
-| variable // Type-check needed.
-| arithmeticConstant;
+expression
+  : ifExpression
+  | whileExpression
+  | matchExpression
+  | functionCall
+  | methodCall
+  | block
+  | lambda
+  | booleanExpression
+  | arithmeticExpression
+  | variable
+  | accessor
+  | 'this'
+  ;
 
-// Here integer_constant and float_constant are left intentionally
-// undefined as they are easier to define using regular expressions.
-ARITHMETIC_CONSTANT : INTEGER_CONSTANT | FLOAT_CONSTANT;
+ifExpression
+  : 'if' booleanExpression block ('else' (block | ifExpression))?
+  ;
 
-fragment INTEGER_CONSTANT : [0-9]+;
+whileExpression
+  : 'while' booleanExpression block
+  ;
 
-fragment FLOAT_CONSTANT : [0-9]+ '.' [0-9]* | [0-9]* '.' [0-9]+;
+matchExpression
+  : match expression '{' case+ '}'
+  ;
 
-// Other stuff.
-typeParameterList : typeParameterList ',' type
-                        | type;
+case
+  : 'case' type funcParameters? '=>' expression
+  ;
 
-type : identifier
-         | identifier '<' typeParameterList '>';
+functionCall
+  : Identifier arguments
+  ;
 
-parameterDefinitionList : parameterDefinitionList ',' parameterDefinition
-                              | parameterDefinition;
+methodCall
+  : expression '.' Identifier arguments
+  ;
 
-parameterDefinition : identifier ':' type;
+block
+  : '{' statement* expression? '}'
+  ;
 
-parameterDefinitionTypeOptionalList : parameterDefinitionTypeOptionalList ',' parameterDefinitionTypeOptional
-                                            | parameterDefinitionTypeOptional;
+lambda
+  : lambdaParameters '=>' expression
+  ;
 
-parameterDefinitionTypeOptional : identifier
-                                       | identifier ':' type;
+lambdaParameters
+  : lambdaParameter
+  | '(' ((lambdaParameter ',')* lambdaParameter)? ')'
+  ;
 
-variableDeclaration : 'val' identifier '=' expression
-                         | 'val' identifier ':' type '=' expression
-                         | 'var' identifier '=' expression
-                         | 'var' identifier ':' type '=' expression;
+lambdaParameter
+  : Identifier (':' type)?
+  ;
 
-variable_assignment : identifier '=' expression;
+booleanExpression
+  : booleanProduct '||' booleanExpression
+  | booleanProduct
+  ;
 
-variable : identifier;
+booleanProduct
+  : booleanInverse '&&' booleanProduct
+  | booleanInverse
+  ;
 
-caseList : caseList caseExpression;
+booleanInverse
+  : '!'? booleanTerm
+  ;
 
-caseExpression : 'case' identifier '(' parameterDefinitionList ')' '=>' expression
-                    | 'case' parameterDefinition '=>' expression;
+booleanTerm
+  : '(' booleanExpression ')'
+  | comparison
+  | functionCall
+  | methodCall
+  | variable
+  | BooleanConstant
+  ;
+
+BooleanConstant
+  : 'true'
+  | 'false'
+  ;
+
+arithmeticExpression
+  : arithmeticProduct ('+' | '-') arithmeticExpression
+  | arithmeticProduct
+  ;
+
+arithmeticProduct
+  : arithmeticTerm ('*' | '/' | '%') arithmeticProduct
+  | arithmeticTerm
+  ;
+
+arithmeticTerm
+  : '(' arithmeticExpression ')'
+  | functionCall
+  | methodCall
+  | variable
+  | ArithmeticConstant
+  ;
+
+ArithmeticConstant
+  : [0-9]+
+  | [0-9]+ '.' [0-9]*
+  | [0-9]* '.' [0-9]+
+  ;
+
+variable
+  : Identifier
+  ;
+
+accessor
+  : expression '.' Identifier
+  ;
+
+eos
+  : ';'
+  | { lineTerminatorAhead() }?
+  | EOF
+  ;
+
+LineTerminator
+  : [\r\n]+ -> channel(HIDDEN)
+  ;
+
+WS : [ \t]+ -> skip;
