@@ -133,7 +133,7 @@ whileExpression
   ;
 
 matchExpression
-  : match expression '{' case+ '}'
+  : 'match' expression '{' case+ '}'
   ;
 
 case
@@ -188,6 +188,17 @@ booleanTerm
   | BooleanConstant
   ;
 
+comparison
+  : arithmeticExpression 
+    ( '==' 
+    | '!=' 
+    | '<=' 
+    | '>=' 
+    | '<' 
+    | '>'
+  ) arithmeticExpression
+  ;
+
 BooleanConstant
   : 'true'
   | 'false'
@@ -229,6 +240,18 @@ eos
   : ';'
   | { lineTerminatorAhead() }?
   | EOF
+  ;
+
+arguments
+  : '(' ((argument ',')* argument)? ')'
+  ;
+
+argument
+  : Identifier
+  ;
+
+Identifier
+  : [a-zA-Z0-9_]+
   ;
 
 LineTerminator
