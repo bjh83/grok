@@ -90,7 +90,7 @@ innerStatement
   | whileExpression
   | matchExpression
   | functionCall
-  | methodCall
+//   | methodCall
   ;
 
 statement
@@ -114,13 +114,13 @@ expression
   | whileExpression
   | matchExpression
   | functionCall
-  | methodCall
+//   | methodCall
   | block
   | lambda
   | booleanExpression
   | arithmeticExpression
   | variable
-  | accessor
+//   | accessor
   | 'this'
   ;
 
@@ -133,10 +133,10 @@ whileExpression
   ;
 
 matchExpression
-  : 'match' expression '{' case+ '}'
+  : 'match' expression '{' matchCase+ '}'
   ;
 
-case
+matchCase
   : 'case' type funcParameters? '=>' expression
   ;
 
@@ -144,9 +144,9 @@ functionCall
   : Identifier arguments
   ;
 
-methodCall
-  : expression '.' Identifier arguments
-  ;
+// methodCall
+//   : expression '.' Identifier arguments
+//   ;
 
 block
   : '{' statement* expression? '}'
@@ -183,7 +183,7 @@ booleanTerm
   : '(' booleanExpression ')'
   | comparison
   | functionCall
-  | methodCall
+//   | methodCall
   | variable
   | BooleanConstant
   ;
@@ -217,7 +217,7 @@ arithmeticProduct
 arithmeticTerm
   : '(' arithmeticExpression ')'
   | functionCall
-  | methodCall
+//   | methodCall
   | variable
   | ArithmeticConstant
   ;
@@ -232,9 +232,9 @@ variable
   : Identifier
   ;
 
-accessor
-  : expression '.' Identifier
-  ;
+// accessor
+//   : expression '.' Identifier
+//   ;
 
 eos
   : ';'
