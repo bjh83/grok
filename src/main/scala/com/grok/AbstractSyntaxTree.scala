@@ -3,12 +3,12 @@ package com.grok
 sealed abstract class TopLevelStatement
 
 // TopLevelStatement ::=
-case class FunctionDefinition(identifier: String, parameters: List[Parameter], returnType: Type, definition: Expression) extends TopLevelStatement
-case class MethodDefinition(reciever: Type, identifier: String, parameters: List[Parameter], returnType: Type, definition: Expression) extends TopLevelStatement
-case class StructDefinition(identifier: String, fields: List[Field]) extends TopLevelStatement
-case class UnionDefinition(identifier: String, members: List[Type]) extends TopLevelStatement
-case class InterfaceDefinition(identifier: String, parents: List[Type], members: List[Stub]) extends TopLevelStatement
-case class Instance(implementer: Type, interface: Type, members: List[MethodDefinition]) extends TopLevelStatement
+case class FunctionDefinition(identifier: String, typeParameters: List[Type], parameters: List[Parameter], returnType: Type, definition: Expression) extends TopLevelStatement
+case class MethodDefinition(receiver: Type, identifier: String, typeParameters: List[Type], parameters: List[Parameter], returnType: Type, definition: Expression) extends TopLevelStatement
+case class StructDefinition(identifier: String, typeParameters: List[Type], fields: List[Field]) extends TopLevelStatement
+case class UnionDefinition(identifier: String, typeParameters: List[Type], members: List[Type]) extends TopLevelStatement
+case class InterfaceDefinition(identifier: String, typeParameters: List[Type], parent: Type, members: List[MethodStub]) extends TopLevelStatement
+case class Instance(implementer: Type, interface: Type, typeParameters: List[Type], members: List[MethodDefinition]) extends TopLevelStatement
 abstract class Statement extends TopLevelStatement
 
 // Statement ::=
@@ -51,3 +51,9 @@ case class ArithmeticFunctionCallWrapper(functionCall: FunctionCall) extends Ari
 case class ArithmeticMethodCallWrapper(methodCall: MethodCall) extends ArithmeticExpression
 case class ArithmeticVariableWrapper(variable: Variable) extends ArithmeticExpression
 case class ArithmeticConstant(value: Double) extends ArithmeticExpression
+
+// Others ::=
+case class Parameter(identifier: String, paramType: Type)
+case class Type(identifier: String)
+case class Field(identifier: String, fieldType: Type, isMutable: Boolean)
+case class MethodStub(identifier: String, typeParameters: List[Type], parameters: List[Parameter], returnType: Type)
