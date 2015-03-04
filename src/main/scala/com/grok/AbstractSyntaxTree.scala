@@ -14,7 +14,8 @@ abstract class Statement extends TopLevelStatement
 // Statement ::=
 case class VariableDeclaration(mutability: Mutability, identifier: String, varType: Option[Type], value: Expression) extends Statement
 case class VariableAssignment(identifier: String, value: Expression) extends Statement
-case class ExpressionWrapper(expression: ExpressionStatement) extends Statement
+case class StructAssignment(identifier: String, member: String, value: Expression) extends Statement
+case class ExpressionWrapper(expression: Expression) extends Statement
 // Included from ExpressionWrapper:
 // case class IfExpression
 // case class WhileExpression
@@ -29,31 +30,56 @@ case class Lambda(parameters: List[ParameterOptionalType], expression: Expressio
 abstract class BooleanExpression extends Expression
 abstract class ArithmeticExpression extends Expression
 case class Variable(identifier: String) extends Expression
-abstract class ExpressionStatement extends Expression
-// ExpressionStatement ::=
-case class IfExpression(condition: BooleanExpression, body: Block, alternative: Option[Expression]) extends ExpressionStatement // I think the alternative works.
-case class WhileExpression(condition: BooleanExpression, body: Block) extends ExpressionStatement
-case class MatchExpression(expression: Expression, cases: List[Case]) extends ExpressionStatement
-case class FunctionCall(identifier: String, parameters: List[Expression]) extends ExpressionStatement
-case class MethodCall(reciever: Expression, identifier: String, parameters: List[Expression]) extends ExpressionStatement
+case class IfExpression(condition: BooleanExpression, body: Block, alternative: Option[Expression]) extends Expression // I think the alternative works.
+case class WhileExpression(condition: BooleanExpression, body: Block) extends Expression
+case class MatchExpression(expression: Expression, cases: List[Case]) extends Expression
+case class FunctionCall(identifier: String, parameters: List[Expression]) extends Expression
+case class MethodCall(receiver: Expression, identifier: String, parameters: List[Expression]) extends Expression
+case object This extends Expression
 
 // BooleanExpression ::=
-case class BooleanBinaryExpression(left: BooleanExpression, operator: BooleanOperator, right: BooleanOperator) extends BooleanExpression
+case class BooleanBinaryExpression(left: BooleanExpression, operator: BooleanOperator, right: BooleanExpression) extends BooleanExpression
+case class BooleanInverse(value: BooleanExpression) extends BooleanExpression
 case class BooleanComparison(left: ArithmeticExpression, operator: ComparisonOperator, right: ArithmeticExpression) extends BooleanExpression
-case class BooleanFunctionCallWrapper(functionCall: FunctionCall) extends BooleanExpression
-case class BooleanMethodCallWrapper(methodCall: MethodCall) extends BooleanExpression
-case class BooleanVariableWrapper(variable: Variable) extends BooleanExpression
+case class BooleanFunctionCallWrapper(functionCall: Expression) extends BooleanExpression
+case class BooleanMethodCallWrapper(methodCall: Expression) extends BooleanExpression
+case class BooleanVariableWrapper(variable: Expression) extends BooleanExpression
 case class BooleanConstant(value: Boolean) extends BooleanExpression
 
 // ArithmeticExpression ::=
 case class ArithmeticBinaryExpression(left: ArithmeticExpression, operator: ArithmeticOperator, right: ArithmeticExpression) extends ArithmeticExpression
-case class ArithmeticFunctionCallWrapper(functionCall: FunctionCall) extends ArithmeticExpression
-case class ArithmeticMethodCallWrapper(methodCall: MethodCall) extends ArithmeticExpression
-case class ArithmeticVariableWrapper(variable: Variable) extends ArithmeticExpression
+case class ArithmeticFunctionCallWrapper(functionCall: Expression) extends ArithmeticExpression
+case class ArithmeticMethodCallWrapper(methodCall: Expression) extends ArithmeticExpression
+case class ArithmeticVariableWrapper(variable: Expression) extends ArithmeticExpression
 case class ArithmeticConstant(value: Double) extends ArithmeticExpression
 
 // Others ::=
+case class Case(parameter: Parameter, body: Expression)
 case class Parameter(identifier: String, paramType: Type)
-case class Type(identifier: String)
-case class Field(identifier: String, fieldType: Type, isMutable: Boolean)
+case class ParameterOptionalType(identifier: String, paramType: Option[Type])
+case class Type(identifier: String, typeParams: List[Type])
+case class Field(identifier: String, fieldType: Type, mutability: Mutability)
 case class MethodStub(identifier: String, typeParameters: List[Type], parameters: List[Parameter], returnType: Type)
+
+sealed abstract class Mutability
+case object IMMUTABLE extends Mutability
+case object MUTABLE extends Mutability
+
+sealed abstract class BooleanOperator
+case object OR extends BooleanOperator
+case object AND extends BooleanOperator
+
+sealed abstract class ComparisonOperator
+case object EQUALS extends ComparisonOperator
+case object NOT_EQUALS extends ComparisonOperator
+case object LESS extends ComparisonOperator
+case object GREATER extends ComparisonOperator
+case object LESS_OR_EQUAL extends ComparisonOperator
+case object GREATER_OR_EQUAL extends ComparisonOperator
+
+sealed abstract class ArithmeticOperator
+case object PLUS extends ArithmeticOperator
+case object MINUS extends ArithmeticOperator
+case object MULTIPLY extends ArithmeticOperator
+case object DIVIDE extends ArithmeticOperator
+case object MODULUS extends ArithmeticOperator

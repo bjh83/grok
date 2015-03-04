@@ -71,7 +71,7 @@ funcParameter
   ;
 
 field
-  : ('var' | 'val') Identifier ':' type
+  : modifier=('var' | 'val') Identifier ':' type
   ;
 
 methodStub
@@ -98,7 +98,7 @@ statement
   ;
 
 variableDeclaration
-  : ('var' | 'val') Identifier (':' type) '=' expression
+  : modifier=('var' | 'val') Identifier (':' type) '=' expression
   ;
 
 variableAssignment
@@ -121,7 +121,7 @@ expression
   | arithmeticExpression
   | variable
 //   | accessor
-  | 'this'
+  | thisExpression
   ;
 
 ifExpression
@@ -137,7 +137,7 @@ matchExpression
   ;
 
 matchCase
-  : 'case' type funcParameters? '=>' expression
+  : 'case' Identifier ':' type '=>' expression
   ;
 
 functionCall
@@ -147,6 +147,10 @@ functionCall
 // methodCall
 //   : expression '.' Identifier arguments
 //   ;
+
+thisExpression
+  : This
+  ;
 
 block
   : '{' statement* expression? '}'
@@ -176,7 +180,7 @@ booleanProduct
   ;
 
 booleanInverse
-  : '!'? booleanTerm
+  : (inverse='!')? booleanTerm
   ;
 
 booleanTerm
@@ -190,7 +194,7 @@ booleanTerm
 
 comparison
   : arithmeticExpression 
-    ( '==' 
+    operation=( '==' 
     | '!=' 
     | '<=' 
     | '>=' 
@@ -205,12 +209,12 @@ BooleanConstant
   ;
 
 arithmeticExpression
-  : arithmeticProduct ('+' | '-') arithmeticExpression
+  : arithmeticProduct operation=('+' | '-') arithmeticExpression
   | arithmeticProduct
   ;
 
 arithmeticProduct
-  : arithmeticTerm ('*' | '/' | '%') arithmeticProduct
+  : arithmeticTerm operation=('*' | '/' | '%') arithmeticProduct
   | arithmeticTerm
   ;
 
@@ -232,6 +236,10 @@ variable
   : Identifier
   ;
 
+This
+  : 'this'
+  ;
+
 // accessor
 //   : expression '.' Identifier
 //   ;
@@ -243,7 +251,7 @@ eos
   ;
 
 arguments
-  : '(' ((argument ',')* argument)? ')'
+  : '(' ((expression ',')* expression)? ')'
   ;
 
 argument
