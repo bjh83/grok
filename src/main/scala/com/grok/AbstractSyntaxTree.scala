@@ -1,5 +1,7 @@
 package com.grok
 
+case class CompilationUnit(topLevelStatements: List[TopLevelStatement], symbolTable: SymbolTable)
+
 sealed abstract class TopLevelStatement
 
 // TopLevelStatement ::=

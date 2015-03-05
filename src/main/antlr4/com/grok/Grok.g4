@@ -117,11 +117,11 @@ expression
 //   | methodCall
   | block
   | lambda
+  | variable
+  | thisExpression
   | booleanExpression
   | arithmeticExpression
-  | variable
 //   | accessor
-  | thisExpression
   ;
 
 ifExpression

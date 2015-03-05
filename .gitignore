@@ -9,3 +9,6 @@ config/
 *.iml
 *.swp
 *.class
+
+% For now, we do not want any test code in the repo.
+*.grok

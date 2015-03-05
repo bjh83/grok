@@ -13,15 +13,6 @@ class ASTBuilder extends GrokBaseVisitor[List[TopLevelStatement]] {
 }
 
 class TopLevelStatementVisitor extends GrokBaseVisitor[TopLevelStatement] {
-  val typeParameterVisit = (new TypeParametersVisitor).visit _
-  val funcParameterVisit = (new FuncParametersVisitor).visit _
-  val typeVisit = (new TypeVisitor).visit _
-  val expressionVisit = (new ExpressionVisitor).visit _
-  val fieldVisit = (new FieldVisitor).visit _
-  val methodStubVisit = (new MethodStubVisitor).visit _
-  val instanceMethodVisit = (new InstanceMethodVisitor).visit _
-  val statementVisit = new (StatementVisitor).visit _
-
   override def visitTopLevelStatement(ctx: TopLevelStatementContext): TopLevelStatement = {
     val functionDefinition = nullToOption(ctx.functionDefinition()).map { visit(_) }
     val methodDefinition = nullToOption(ctx.methodDefintion()).map { visit(_) }
@@ -41,40 +32,40 @@ class TopLevelStatementVisitor extends GrokBaseVisitor[TopLevelStatement] {
   }
 
   override def visitFunctionDefinition(ctx: FunctionDefinitionContext): TopLevelStatement = {
-    val typeParameters = nullToOption(ctx.typeParameters()).map { typeParameterVisit(_) }.toList.flatten
+    val typeParameters = nullToOption(ctx.typeParameters()).map { typeParametersVisit(_) }.toList.flatten
     val identifier = ctx.Identifier().getText
-    val funcParameters = funcParameterVisit(ctx.funcParameters())
+    val funcParameters = funcParametersVisit(ctx.funcParameters())
     val returnType = typeVisit(ctx.`type`())
     val body = expressionVisit(ctx.expression())
     FunctionDefinition(identifier, typeParameters, funcParameters, returnType, body)
   }
 
   override def visitMethodDefintion(ctx: MethodDefintionContext): TopLevelStatement = {
-    val typeParameters = nullToOption(ctx.typeParameters()).map { typeParameterVisit(_) }.toList.flatten
+    val typeParameters = nullToOption(ctx.typeParameters()).map { typeParametersVisit(_) }.toList.flatten
     val receiver = typeVisit(ctx.`type`(0))
     val identifier = ctx.Identifier().getText
-    val funcParameters = funcParameterVisit(ctx.funcParameters())
+    val funcParameters = funcParametersVisit(ctx.funcParameters())
     val returnType = typeVisit(ctx.`type`(1))
     val body = expressionVisit(ctx.expression())
     MethodDefinition(receiver, identifier, typeParameters, funcParameters, returnType, body)
   }
 
   override def visitStructDefinition(ctx: StructDefinitionContext): TopLevelStatement = {
-    val typeParameters = nullToOption(ctx.typeParameters()).map { typeParameterVisit(_) }.toList.flatten
+    val typeParameters = nullToOption(ctx.typeParameters()).map { typeParametersVisit(_) }.toList.flatten
     val identifier = ctx.Identifier().getText
     val fields = ctx.field().asScala.map { fieldVisit(_) }.toList
     StructDefinition(identifier, typeParameters, fields)
   }
 
   override def visitUnionDefintion(ctx: UnionDefintionContext): TopLevelStatement = {
-    val typeParameters = nullToOption(ctx.typeParameters()).map { typeParameterVisit(_) }.toList.flatten
+    val typeParameters = nullToOption(ctx.typeParameters()).map { typeParametersVisit(_) }.toList.flatten
     val identifier = ctx.Identifier().getText
     val members = ctx.`type`().asScala.map { typeVisit(_) }.toList
     UnionDefinition(identifier, typeParameters, members)
   }
 
   override def visitInterfaceDefinition(ctx: InterfaceDefinitionContext): TopLevelStatement = {
-    val typeParameters = nullToOption(ctx.typeParameters()).map { typeParameterVisit(_) }.toList.flatten
+    val typeParameters = nullToOption(ctx.typeParameters()).map { typeParametersVisit(_) }.toList.flatten
     val identifier = ctx.Identifier().getText
     val parent = typeVisit(ctx.`type`())
     val methods = ctx.methodStub().asScala.map { methodStubVisit(_) }.toList
@@ -82,7 +73,7 @@ class TopLevelStatementVisitor extends GrokBaseVisitor[TopLevelStatement] {
   }
 
   override def visitInstance(ctx: InstanceContext): TopLevelStatement = {
-    val typeParameters = nullToOption(ctx.typeParameters()).map { typeParameterVisit(_) }.toList.flatten
+    val typeParameters = nullToOption(ctx.typeParameters()).map { typeParametersVisit(_) }.toList.flatten
     val implementor = typeVisit(ctx.`type`(0))
     val interface = typeVisit(ctx.`type`(1))
     val methods = ctx.instanceMethod().asScala.map { method => instanceMethodVisit(method)(implementor) }.toList
@@ -93,9 +84,6 @@ class TopLevelStatementVisitor extends GrokBaseVisitor[TopLevelStatement] {
 }
 
 class StatementVisitor extends GrokBaseVisitor[Statement] {
-  val expressionVisit = (new ExpressionVisitor).visit _
-  val typeVisit = (new TypeVisitor).visit _
-
   override def visitStatement(ctx: StatementContext): Statement = visit(ctx.innerStatement())
 
   override def visitInnerStatement(ctx: InnerStatementContext): Statement = {
@@ -136,12 +124,6 @@ class StatementVisitor extends GrokBaseVisitor[Statement] {
 }
 
 class ExpressionVisitor extends GrokBaseVisitor[Expression] {
-  val arithmeticExpressionVisit = (new ArithmeticExpressionVisitor).visit _
-  val booleanExpressionVisit = (new BooleanExpressionVisitor).visit _
-  val blockVisit = (new BlockVisitor).visit _
-  val caseVisit = (new CaseVisitor).visit _
-  val lambdaParameterVisit = (new LambdaParametersVisitor).visit _
-
   override def visitExpression(ctx: ExpressionContext): Expression = {
     nullToOption(ctx.ifExpression()).map { visit }
       .orElse(nullToOption(ctx.whileExpression()).map { visit })
@@ -183,7 +165,7 @@ class ExpressionVisitor extends GrokBaseVisitor[Expression] {
   }
 
   override def visitLambda(ctx: LambdaContext): Expression = {
-    val parameters = lambdaParameterVisit(ctx.lambdaParameters())
+    val parameters = lambdaParametersVisit(ctx.lambdaParameters())
     val body = visit(ctx.expression())
     Lambda(parameters, body)
   }
@@ -198,9 +180,6 @@ class ExpressionVisitor extends GrokBaseVisitor[Expression] {
 }
 
 class BooleanExpressionVisitor extends GrokBaseVisitor[BooleanExpression] {
-  val expressionVisit = (new ExpressionVisitor).visit _
-  val arithmeticExpressionVisit = (new ArithmeticExpressionVisitor).visit _
-
   override def visitBooleanExpression(ctx: BooleanExpressionContext): BooleanExpression = {
     val left = visit(ctx.booleanProduct())
     val right = nullToOption(ctx.booleanExpression()).map { visit }
@@ -248,8 +227,6 @@ class BooleanExpressionVisitor extends GrokBaseVisitor[BooleanExpression] {
 }
 
 class ArithmeticExpressionVisitor extends GrokBaseVisitor[ArithmeticExpression] {
-  val expressionVisit = (new ExpressionVisitor).visit _
-
   override def visitArithmeticExpression(ctx: ArithmeticExpressionContext): ArithmeticExpression = {
     val left = visit(ctx.arithmeticProduct())
     val operator = nullToOption(ctx.operation).map { operator => parseArithmeticOperator(operator.getText) }
@@ -282,9 +259,6 @@ class ArithmeticExpressionVisitor extends GrokBaseVisitor[ArithmeticExpression] 
 }
 
 class BlockVisitor extends GrokBaseVisitor[Block] {
-  val statementVisit = (new StatementVisitor).visit _
-  val expressionVisit = (new ExpressionVisitor).visit _
-
   override def visitBlock(ctx: BlockContext): Block = {
     val statements = ctx.statement().asScala.map { statementVisit }.toList
     val expression = nullToOption(ctx.expression()).map { expressionVisit }
@@ -293,8 +267,6 @@ class BlockVisitor extends GrokBaseVisitor[Block] {
 }
 
 class CaseVisitor extends GrokBaseVisitor[Case] {
-  val typeVisit = (new TypeVisitor).visit _
-  val expressionVisit = (new ExpressionVisitor).visit _
   override def visitMatchCase(ctx: MatchCaseContext): Case = {
     val parameter = ctx.Identifier().getText
     val paramType = typeVisit(ctx.`type`())
@@ -304,14 +276,10 @@ class CaseVisitor extends GrokBaseVisitor[Case] {
 }
 
 class TypeParametersVisitor extends GrokBaseVisitor[List[Type]] {
-  val typeVisit = (new TypeVisitor).visit _
-
   override def visitTypeParameters(ctx: TypeParametersContext): List[Type] = ctx.`type`().asScala.map { typeVisit }.toList
 }
 
 class FuncParametersVisitor extends GrokBaseVisitor[List[Parameter]] {
-  val funcParameterVisit = (new FuncParameterVisitor).visit _
-
   override def visitFuncParameters(ctx: FuncParametersContext): List[Parameter] = {
     ctx.funcParameter().asScala.map { funcParameterVisit }.toList
   }
@@ -327,15 +295,12 @@ class FuncParameterVisitor extends GrokBaseVisitor[Parameter] {
 }
 
 class LambdaParametersVisitor extends GrokBaseVisitor[List[ParameterOptionalType]] {
-  val lambdaParameterVisit = (new LambdaParameterVisitor).visit _
-
   override def visitLambdaParameters(ctx: LambdaParametersContext): List[ParameterOptionalType] = {
     ctx.lambdaParameter().asScala.map { lambdaParameterVisit }.toList
   }
 }
 
 class LambdaParameterVisitor extends GrokBaseVisitor[ParameterOptionalType] {
-  val typeVisit = (new TypeVisitor).visit _
   override def visitLambdaParameter(ctx: LambdaParameterContext): ParameterOptionalType = {
     val identifier = ctx.Identifier().getText
     val paramType = nullToOption(ctx.`type`()).map { typeVisit }
@@ -344,17 +309,14 @@ class LambdaParameterVisitor extends GrokBaseVisitor[ParameterOptionalType] {
 }
 
 class TypeVisitor extends GrokBaseVisitor[Type] {
-  val typeParametersVisit = (new TypeParametersVisitor).visit _
-
   override def visitType(ctx: TypeContext): Type = {
     val identifier = ctx.Identifier().getText
-    val typeParams = typeParametersVisit(ctx.typeParameters())
+    val typeParams = nullToOption(ctx.typeParameters()).map(typeParametersVisit).toList.flatten
     Type(identifier, typeParams)
   }
 }
 
 class FieldVisitor extends GrokBaseVisitor[Field] {
-  val typeVisit = (new TypeVisitor).visit _
   override def visitField(ctx: FieldContext): Field = {
     val mutability = parseMutability(ctx.modifier.getText)
     val identifier = ctx.Identifier().getText
@@ -364,10 +326,6 @@ class FieldVisitor extends GrokBaseVisitor[Field] {
 }
 
 class MethodStubVisitor extends GrokBaseVisitor[MethodStub] {
-  val typeParametersVisit = (new TypeParametersVisitor).visit _
-  val funcParametersVisit = (new FuncParametersVisitor).visit _
-  val typeVisit = (new TypeVisitor).visit _
-
   override def visitMethodStub(ctx: MethodStubContext): MethodStub = {
     val typeParameters = nullToOption(ctx.typeParameters()).map { typeParametersVisit }.toList.flatten
     val identifier = ctx.Identifier().getText
@@ -378,17 +336,12 @@ class MethodStubVisitor extends GrokBaseVisitor[MethodStub] {
 }
 
 class InstanceMethodVisitor extends GrokBaseVisitor[Type => MethodDefinition] {
-  val typeParametersVisit = (new TypeParametersVisitor).visit _
-  val funcParametersVisit = (new FuncParametersVisitor).visit _
-  val typeVisit = (new TypeVisitor).visit _
-  val expressionVist = (new ExpressionVisitor).visit _
-
   override def visitInstanceMethod(ctx: InstanceMethodContext): Type => MethodDefinition = {
     val typeParameters = nullToOption(ctx.typeParameters()).map { typeParametersVisit }.toList.flatten
     val identifier = ctx.Identifier().getText
     val funcParameters = funcParametersVisit(ctx.funcParameters())
     val returnType = typeVisit(ctx.`type`())
-    val body = expressionVist(ctx.expression())
+    val body = expressionVisit(ctx.expression())
     receiver => MethodDefinition(receiver, identifier, typeParameters, funcParameters, returnType, body)
   }
 }
@@ -420,4 +373,22 @@ object Utilities {
     case "/" => DIVIDE
     case "%" => MODULUS
   }
+
+  val typeParametersVisit = (new TypeParametersVisitor).visit _
+  val typeVisit = (new TypeVisitor).visit _
+  val expressionVisit = (new ExpressionVisitor).visit _
+  val fieldVisit = (new FieldVisitor).visit _
+  val methodStubVisit = (new MethodStubVisitor).visit _
+  val instanceMethodVisit = (new InstanceMethodVisitor).visit _
+  val statementVisit = new (StatementVisitor).visit _
+  val arithmeticExpressionVisit = (new ArithmeticExpressionVisitor).visit _
+  val booleanExpressionVisit = (new BooleanExpressionVisitor).visit _
+  val blockVisit = (new BlockVisitor).visit _
+  val caseVisit = (new CaseVisitor).visit _
+  val lambdaParametersVisit = (new LambdaParametersVisitor).visit _
+  val lambdaParameterVisit = (new LambdaParameterVisitor).visit _
+  val funcParametersVisit = (new FuncParametersVisitor).visit _
+  val funcParameterVisit = (new FuncParameterVisitor).visit _
+
+
 }
