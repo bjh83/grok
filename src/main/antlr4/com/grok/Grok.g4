@@ -59,7 +59,7 @@ typeParameters
   ;
 
 type
-  : Identifier typeParameters?
+  : Identifier typeParameters? ('=>' type)?
   ;
 
 funcParameters
@@ -110,18 +110,41 @@ structAssignment
   ;
 
 expression
-  : ifExpression
+  : primaryExpression
+  | lambda
+  | booleanExpression
+  | arithmeticExpression
+  ;
+
+// Expressions with very high associativity which are safe to use as
+// sub-expressions in things like terms in boolean and arithmetic expressions.
+primaryExpression
+  : accessableExpression '.' accessor
+  | accessableExpression
+  ;
+
+// Anything which can have an accessor applied.
+accessableExpression
+  : '(' expression ')'
+  | ifExpression
   | whileExpression
   | matchExpression
   | functionCall
-//   | methodCall
   | block
-  | lambda
   | variable
   | thisExpression
-  | booleanExpression
-  | arithmeticExpression
-//   | accessor
+  ;
+
+// Anything which must have a receiver and can serve as a receiver.
+accessorExpression
+  : functionCall
+  | variable
+  ;
+
+// Resolves method chaining.
+accessor
+  : accessorExpression '.' accessor
+  | accessorExpression
   ;
 
 ifExpression
@@ -185,10 +208,7 @@ booleanInverse
 
 booleanTerm
   : '(' booleanExpression ')'
-  | comparison
-  | functionCall
-//   | methodCall
-  | variable
+  | primaryExpression
   | BooleanConstant
   ;
 
@@ -220,15 +240,21 @@ arithmeticProduct
 
 arithmeticTerm
   : '(' arithmeticExpression ')'
-  | functionCall
-//   | methodCall
-  | variable
-  | ArithmeticConstant
+  | primaryExpression
+  | arithmeticConstant
   ;
 
-ArithmeticConstant
+arithmeticConstant
+  : IntegralConstant
+  | FloatingPointConstaint
+  ;
+
+IntegralConstant
   : [0-9]+
-  | [0-9]+ '.' [0-9]*
+  ;
+
+FloatingPointConstant
+  : [0-9]+ '.' [0-9]*
   | [0-9]* '.' [0-9]+
   ;
 
