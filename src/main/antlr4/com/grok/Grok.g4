@@ -20,14 +20,14 @@ compilationUnit
   ;
 
 topLevelStatement 
-  : (functionDefinition
+  : ( functionDefinition
     | methodDefintion 
     | structDefinition
     | unionDefintion
     | interfaceDefinition
     | instance
-    | statement
     ) eos
+  | statement
   ;
 
 functionDefinition
@@ -98,7 +98,7 @@ statement
   ;
 
 variableDeclaration
-  : modifier=('var' | 'val') Identifier (':' type) '=' expression
+  : modifier=('var' | 'val') Identifier (':' type)? '=' expression
   ;
 
 variableAssignment
@@ -247,7 +247,7 @@ arithmeticTerm
 
 arithmeticConstant
   : IntegralConstant
-  | FloatingPointConstaint
+  | FloatingPointConstant
   ;
 
 IntegralConstant

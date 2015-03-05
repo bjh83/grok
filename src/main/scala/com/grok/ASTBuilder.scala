@@ -143,7 +143,7 @@ class ExpressionVisitor extends GrokBaseVisitor[Expression] {
       .orElse(nullToOption(ctx.whileExpression()).map(visit))
       .orElse(nullToOption(ctx.matchExpression()).map(visit))
       .orElse(nullToOption(ctx.functionCall()).map(visit))
-      .orElse(nullToOption(ctx.block()).map(visit))
+      .orElse(nullToOption(ctx.block()).map(blockVisit))
       .orElse(nullToOption(ctx.variable()).map(visit))
       .orElse(nullToOption(ctx.thisExpression()).map(visit))
       .get
@@ -268,7 +268,7 @@ class ArithmeticExpressionVisitor extends GrokBaseVisitor[ArithmeticExpression] 
 
   override def visitArithmeticConstant(ctx: ArithmeticConstantContext): ArithmeticExpression = {
     nullToOption(ctx.IntegralConstant()).map(const => ArithmeticIntegralConstant(const.getText.toInt))
-      .orElse(nullToOption(ctx.FloatingPointConstaint()).map(const => ArithmeticFloatingPointConstant(const.getText.toFloat)))
+      .orElse(nullToOption(ctx.FloatingPointConstant()).map(const => ArithmeticFloatingPointConstant(const.getText.toFloat)))
       .get
   }
 }
