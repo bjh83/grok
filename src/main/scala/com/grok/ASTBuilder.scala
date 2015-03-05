@@ -125,16 +125,27 @@ class StatementVisitor extends GrokBaseVisitor[Statement] {
 
 class ExpressionVisitor extends GrokBaseVisitor[Expression] {
   override def visitExpression(ctx: ExpressionContext): Expression = {
-    nullToOption(ctx.ifExpression()).map { visit }
-      .orElse(nullToOption(ctx.whileExpression()).map { visit })
-      .orElse(nullToOption(ctx.matchExpression()).map { visit })
-      .orElse(nullToOption(ctx.functionCall()).map { visit })
-      .orElse(nullToOption(ctx.block()).map { visit })
+    nullToOption(ctx.primaryExpression()).map { visit }
       .orElse(nullToOption(ctx.lambda()).map { visit })
       .orElse(nullToOption(ctx.booleanExpression()).map { visit })
       .orElse(nullToOption(ctx.arithmeticExpression()).map { visit })
-      .orElse(nullToOption(ctx.variable()).map { visit })
-      .orElse(nullToOption(ctx.thisExpression()).map { visit })
+      .get
+  }
+
+  override def visitPrimaryExpression(ctx: PrimaryExpressionContext): Expression = {
+    val receiver = visit(ctx.accessableExpression())
+    nullToOption(ctx.accessor()).map(accessor => accessorVisit(accessor)(receiver)).getOrElse(receiver)
+  }
+
+  override def visitAccessableExpression(ctx: AccessableExpressionContext): Expression = {
+    nullToOption(ctx.expression()).map(visit)
+      .orElse(nullToOption(ctx.ifExpression()).map(visit))
+      .orElse(nullToOption(ctx.whileExpression()).map(visit))
+      .orElse(nullToOption(ctx.matchExpression()).map(visit))
+      .orElse(nullToOption(ctx.functionCall()).map(visit))
+      .orElse(nullToOption(ctx.block()).map(visit))
+      .orElse(nullToOption(ctx.variable()).map(visit))
+      .orElse(nullToOption(ctx.thisExpression()).map(visit))
       .get
   }
 
@@ -212,8 +223,7 @@ class BooleanExpressionVisitor extends GrokBaseVisitor[BooleanExpression] {
   override def visitBooleanTerm(ctx: BooleanTermContext): BooleanExpression = {
     nullToOption(ctx.booleanExpression()).map { visit }
       .orElse(nullToOption(ctx.comparison()).map { visit })
-      .orElse(nullToOption(ctx.functionCall()).map { call => BooleanFunctionCallWrapper(expressionVisit(call)) })
-      .orElse(nullToOption(ctx.variable()).map { variable => BooleanVariableWrapper(expressionVisit(variable))})
+      .orElse(nullToOption(ctx.primaryExpression()).map { expr => BooleanExpressionWrapper(expressionVisit(expr)) })
       .orElse(nullToOption(ctx.BooleanConstant()).map { const => com.grok.BooleanConstant(const.getText.toBoolean) })
       .get
   }
@@ -251,9 +261,14 @@ class ArithmeticExpressionVisitor extends GrokBaseVisitor[ArithmeticExpression] 
 
   override def visitArithmeticTerm(ctx: ArithmeticTermContext): ArithmeticExpression = {
     nullToOption(ctx.arithmeticExpression()).map { visit }
-      .orElse(nullToOption(ctx.functionCall()).map { call => ArithmeticFunctionCallWrapper(expressionVisit(call)) })
-      .orElse(nullToOption(ctx.variable()).map { variable => ArithmeticVariableWrapper(expressionVisit(variable)) })
-      .orElse(nullToOption(ctx.ArithmeticConstant()).map { const => com.grok.ArithmeticConstant(const.getText.toDouble) })
+      .orElse(nullToOption(ctx.primaryExpression()).map { expr => ArithmeticExpressionWrapper(expressionVisit(expr)) })
+      .orElse(nullToOption(ctx.arithmeticConstant()).map(visit))
+      .get
+  }
+
+  override def visitArithmeticConstant(ctx: ArithmeticConstantContext): ArithmeticExpression = {
+    nullToOption(ctx.IntegralConstant()).map(const => ArithmeticIntegralConstant(const.getText.toInt))
+      .orElse(nullToOption(ctx.FloatingPointConstaint()).map(const => ArithmeticFloatingPointConstant(const.getText.toFloat)))
       .get
   }
 }
@@ -312,7 +327,12 @@ class TypeVisitor extends GrokBaseVisitor[Type] {
   override def visitType(ctx: TypeContext): Type = {
     val identifier = ctx.Identifier().getText
     val typeParams = nullToOption(ctx.typeParameters()).map(typeParametersVisit).toList.flatten
-    Type(identifier, typeParams)
+    val right = nullToOption(ctx.`type`()).map(visit)
+    if (right.nonEmpty) {
+      FunctionType(SimpleType(identifier, typeParams), right.get)
+    } else {
+      SimpleType(identifier, typeParams)
+    }
   }
 }
 
@@ -343,6 +363,26 @@ class InstanceMethodVisitor extends GrokBaseVisitor[Type => MethodDefinition] {
     val returnType = typeVisit(ctx.`type`())
     val body = expressionVisit(ctx.expression())
     receiver => MethodDefinition(receiver, identifier, typeParameters, funcParameters, returnType, body)
+  }
+}
+
+class AccessorVisitor extends GrokBaseVisitor[Expression => Expression] {
+  override def visitAccessor(ctx: AccessorContext): Expression => Expression = {
+    val left = visit(ctx.accessorExpression())
+    val right = nullToOption(ctx.accessor()).map(visit)
+    if (right.nonEmpty) {
+      receiver => right.get(left(receiver))
+    } else {
+      left
+    }
+  }
+
+  override def visitAccessorExpression(ctx: AccessorExpressionContext): Expression => Expression = {
+    nullToOption(ctx.functionCall()).map(expressionVisit)
+      .orElse(nullToOption(ctx.variable()).map(expressionVisit)) match {
+      case Some(FunctionCall(identifier, parameters)) => receiver => MethodCall(receiver, identifier, parameters)
+      case Some(Variable(identifier)) => receiver => StructAccess(receiver, identifier)
+    }
   }
 }
 
@@ -389,6 +429,5 @@ object Utilities {
   val lambdaParameterVisit = (new LambdaParameterVisitor).visit _
   val funcParametersVisit = (new FuncParametersVisitor).visit _
   val funcParameterVisit = (new FuncParameterVisitor).visit _
-
-
+  val accessorVisit = (new AccessorVisitor).visit _
 }

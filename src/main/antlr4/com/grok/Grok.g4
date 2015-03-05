@@ -208,6 +208,7 @@ booleanInverse
 
 booleanTerm
   : '(' booleanExpression ')'
+  | comparison
   | primaryExpression
   | BooleanConstant
   ;

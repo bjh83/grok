@@ -37,29 +37,30 @@ case class WhileExpression(condition: BooleanExpression, body: Block) extends Ex
 case class MatchExpression(expression: Expression, cases: List[Case]) extends Expression
 case class FunctionCall(identifier: String, parameters: List[Expression]) extends Expression
 case class MethodCall(receiver: Expression, identifier: String, parameters: List[Expression]) extends Expression
+case class StructAccess(receiver: Expression, identifier: String) extends Expression
 case object This extends Expression
 
 // BooleanExpression ::=
 case class BooleanBinaryExpression(left: BooleanExpression, operator: BooleanOperator, right: BooleanExpression) extends BooleanExpression
 case class BooleanInverse(value: BooleanExpression) extends BooleanExpression
 case class BooleanComparison(left: ArithmeticExpression, operator: ComparisonOperator, right: ArithmeticExpression) extends BooleanExpression
-case class BooleanFunctionCallWrapper(functionCall: Expression) extends BooleanExpression
-case class BooleanMethodCallWrapper(methodCall: Expression) extends BooleanExpression
-case class BooleanVariableWrapper(variable: Expression) extends BooleanExpression
+case class BooleanExpressionWrapper(expression: Expression) extends BooleanExpression
 case class BooleanConstant(value: Boolean) extends BooleanExpression
 
 // ArithmeticExpression ::=
 case class ArithmeticBinaryExpression(left: ArithmeticExpression, operator: ArithmeticOperator, right: ArithmeticExpression) extends ArithmeticExpression
-case class ArithmeticFunctionCallWrapper(functionCall: Expression) extends ArithmeticExpression
-case class ArithmeticMethodCallWrapper(methodCall: Expression) extends ArithmeticExpression
-case class ArithmeticVariableWrapper(variable: Expression) extends ArithmeticExpression
-case class ArithmeticConstant(value: Double) extends ArithmeticExpression
+case class ArithmeticExpressionWrapper(expression: Expression) extends ArithmeticExpression
+case class ArithmeticIntegralConstant(value: Int) extends ArithmeticExpression
+case class ArithmeticFloatingPointConstant(value: Double) extends ArithmeticExpression
 
 // Others ::=
+sealed abstract class Type
+case class SimpleType(identifier: String, typeParams: List[Type]) extends Type
+case class FunctionType(left: Type, right: Type) extends Type
+
 case class Case(parameter: Parameter, body: Expression)
 case class Parameter(identifier: String, paramType: Type)
 case class ParameterOptionalType(identifier: String, paramType: Option[Type])
-case class Type(identifier: String, typeParams: List[Type])
 case class Field(identifier: String, fieldType: Type, mutability: Mutability)
 case class MethodStub(identifier: String, typeParameters: List[Type], parameters: List[Parameter], returnType: Type)
 
