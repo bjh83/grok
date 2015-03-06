@@ -35,7 +35,7 @@ class DefaultCompiler extends Compiler {
 
   private def compileSource(file: File): Unit = {
     val compilationUnit = compileToAST(new ANTLRInputStream(new FileInputStream(file)))
-    println(compilationUnit.topLevelStatements)
+    compilationUnit.topLevelStatements.foreach(println)
   }
 
   private def compileToAST(inputStream: ANTLRInputStream): CompilationUnit = {
