@@ -11,6 +11,8 @@ import org.antlr.v4.runtime.ANTLRInputStream
 object CompilerFactory {
   def compiler(flags: Flags): Compiler = if (flags.compilerType == DEFAULT_COMPILER) {
     new DefaultCompiler
+  } else if (flags.compilerType == INTERPRETER) {
+    new Interpreter
   } else {
     sys.error("Compiler type unsupported.")
   }
@@ -22,6 +24,7 @@ abstract class Compiler {
 
 sealed abstract class CompilerType
 case object DEFAULT_COMPILER extends CompilerType
+case object INTERPRETER extends CompilerType
 
 class DefaultCompiler extends Compiler {
   private val buildAST = (new ASTBuilder).visit _

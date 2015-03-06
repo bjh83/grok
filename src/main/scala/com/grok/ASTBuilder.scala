@@ -276,8 +276,20 @@ class ArithmeticExpressionVisitor extends GrokBaseVisitor[ArithmeticExpression] 
 class BlockVisitor extends GrokBaseVisitor[Block] {
   override def visitBlock(ctx: BlockContext): Block = {
     val statements = ctx.statement().asScala.map { statementVisit }.toList
-    val expression = nullToOption(ctx.expression()).map { expressionVisit }
-    Block(statements, expression)
+    val expression = nullToOption(ctx.expression()).map(expressionVisit)
+    if (expression.nonEmpty) {
+      Block(statements, expression)
+    } else {
+      val lastStatement = statements.lastOption.map {
+        case ExpressionWrapper(expr) => Some(expr)
+        case _ => None
+      }.flatten
+      if (lastStatement.nonEmpty) {
+        Block(statements.init, lastStatement)
+      } else {
+        Block(statements, None)
+      }
+    }
   }
 }
 

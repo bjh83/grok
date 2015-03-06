@@ -17,6 +17,7 @@ object Main {
   def parseFlags(args: Seq[String]): (Flags, Seq[String]) = {
     val flags = new Flags
     val parseFlag: PartialFunction[(String, String), Boolean] = {
+      case ("--compiler_type", value) => flags.compilerType = parseCompilerType(value); true
       case _ => false
     }
     (flags, args.filterNot(arg => parseFlag(splitFlag(arg))))
@@ -34,10 +35,11 @@ object Main {
   }
 
   val parseCompilerType: PartialFunction[String, CompilerType] = {
+    case "interpreter" => INTERPRETER
     case "default" => DEFAULT_COMPILER
   }
 }
 
 class Flags {
-  var compilerType = DEFAULT_COMPILER
+  var compilerType: CompilerType = DEFAULT_COMPILER
 }
