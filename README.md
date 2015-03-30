@@ -30,7 +30,7 @@ Running
 Since grok is still very much under development, it is easiest to execute it
 from the sbt terminal:
 
-    $ sbt run [flags] [path_to_source]
+    $ sbt "run [flags] [path_to_source]"
 
 Where flags are optionally one of the following:
 
