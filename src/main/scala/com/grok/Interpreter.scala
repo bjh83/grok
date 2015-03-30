@@ -25,16 +25,15 @@ class Interpreter extends Compiler {
     executeAST(compilationUnit)
   }
 
-  private def compileToAST(inputStream: ANTLRInputStream): CompilationUnit = {
+  private def compileToAST(inputStream: ANTLRInputStream): List[TopLevelStatement] = {
     val lexer = new GrokLexer(inputStream)
     val tokens = new CommonTokenStream(lexer)
     val parser = new GrokParser(tokens)
-    val ast = buildAST(parser.compilationUnit())
-    CompilationUnit(ast, new SymbolTable)
+    buildAST(parser.compilationUnit())
   }
 
-  def executeAST(compilationUnit: CompilationUnit): Unit = {
-    compilationUnit.topLevelStatements.foreach(executeTopLevelStatement)
+  def executeAST(ast: List[TopLevelStatement]): Unit = {
+    ast.foreach(executeTopLevelStatement)
   }
 
   private val executeTopLevelStatement: PartialFunction[TopLevelStatement, Unit] = {

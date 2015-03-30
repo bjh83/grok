@@ -37,15 +37,19 @@ class DefaultCompiler extends Compiler {
   }
 
   private def compileSource(file: File): Unit = {
-    val compilationUnit = compileToAST(new ANTLRInputStream(new FileInputStream(file)))
+    val ast = compileToAST(new ANTLRInputStream(new FileInputStream(file)))
+    val compilationUnit = buildSymbolTable(ast)
     compilationUnit.topLevelStatements.foreach(println)
   }
 
-  private def compileToAST(inputStream: ANTLRInputStream): CompilationUnit = {
+  private def compileToAST(inputStream: ANTLRInputStream): List[TopLevelStatement] = {
     val lexer = new GrokLexer(inputStream)
     val tokens = new CommonTokenStream(lexer)
     val parser = new GrokParser(tokens)
-    val ast = buildAST(parser.compilationUnit())
-    CompilationUnit(ast, new SymbolTable)
+    buildAST(parser.compilationUnit())
+  }
+
+  private def buildSymbolTable(ast: List[TopLevelStatement]): CompilationUnit = {
+    (new SemanticAnalyzer).analyze(ast)
   }
 }
