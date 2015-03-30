@@ -15,10 +15,13 @@ Installing grok requires [sbt](http://www.scala-sbt.org/) 0.13 or higher and
 git:
   - See [download](http://www.scala-sbt.org/download.html) sbt
   - See [download](http://git-scm.com/downloads) git
+
 Installing and building Grok is simple:
+
     $ git clone https://github.com/bjh83/grok.git
     $ cd grok
     $ sbt compile
+
 The first time you run sbt, it will download all needed dependencies; this may
 take a little while.
 
@@ -26,13 +29,17 @@ Running
 -------
 Since grok is still very much under development, it is easiest to execute it
 from the sbt terminal:
+
     $ sbt run [flags] [path_to_source]
+
 Where flags are optionally one of the following:
+
     --compiler_type=default
     --compiler_type=interpreter
+
 Ultimately, the default option will compile the input files into output files
 which will be executable by a virtual machine; however, at the moment, this only
-verifies that the input file is gramatically and semantically valid and then
+verifies that the input file is grammatically and semantically valid and then
 prints out the AST. The interpreter actually executes a subset of the language;
 however, its error messages are unhelpful at best.
 
@@ -53,6 +60,6 @@ Expect regular breaking changes.
 In particular, there are a number of things which do not work:
   - Type Checking: Currently under development.
   - Code Generation: Not yet started.
-  - Interpretter: Only supports a subset of the language.
+  - Interpreter: Only supports a subset of the language.
 
 Please check back regularly, as this list will get smaller and more detailed.
