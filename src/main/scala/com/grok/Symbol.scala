@@ -3,17 +3,17 @@ package com.grok
 /**
  * Created by brendan.
  */
-sealed abstract class SymbolDefinition[S, K <: Key] {
+sealed abstract class SymbolDefinition[+S, +K <: Key] {
   def symbol: S
 
   def key: K
 
   def `type`: Type
 
-  def buildSymbolGroup(): SymbolGroup
+  def buildSymbolGroup(): SymbolGroup[_, _, _]
 }
 
-sealed abstract class SymbolInstance[T, K <: Key] {
+sealed abstract class SymbolInstance[+T, +K <: Key] {
   def symbol: T
 
   def key: K
@@ -66,6 +66,6 @@ case class FunctionSymbolDefinition(symbol: FunctionDefinition)
   def `type` = key.toType(symbol.returnType)
 }
 
-case class FunctionSymbolInstance(symbol: String, parameters: List[Type]) extends SymbolInstance[FunctionCall, FunctionKey] {
+case class FunctionSymbolInstance(symbol: String, parameters: List[Type]) extends SymbolInstance[String, FunctionKey] {
   def key = FunctionKey(symbol, parameters)
 }

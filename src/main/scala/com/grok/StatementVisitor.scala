@@ -3,7 +3,7 @@ package com.grok
 /**
  * Created by brendan.
  */
-abstract class StatementVisitor[T] {
+abstract class GeneralStatementVisitor[T] {
   protected val visitTopLevelStatement: PartialFunction[TopLevelStatement, T] = {
     case functionDefinition: FunctionDefinition => internalVisitFunctionDefinition(functionDefinition)
     case methodDefinition: MethodDefinition => internalVisitMethodDefinition(methodDefinition)

@@ -79,7 +79,7 @@ class CodeGenerator {
       case expr: Block => visitBlock(expr, operand)
       case expr: Lambda => visitLambda(expr, operand)
       case expr: BooleanExpression => visitBooleanExpression(expr, operand.asInstanceOf[BoolOperand])
-      case expr: ArithmeticExpression => visitArithmeticExpression(expr, operand)
+      case expr: ArithmeticExpression => visitArithmeticExpression(expr, operand.asInstanceOf[ArithmeticOperand])
       case expr: Variable => visitVariable(expr, operand)
       case expr: IfExpression => visitIfExpression(expr, operand)
       case expr: WhileExpression => visitWhileExpression(expr, operand)

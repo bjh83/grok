@@ -6,7 +6,7 @@ import scala.util.{Success, Try}
  * Created by brendan.
  */
 class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
-  override var definitionTable: FinalDefinitionTable = _
+  var definitionTable: FinalDefinitionTable = _
   var typeTable: TypeTable = _
 
   def visitAST(ast: List[TopLevelStatement], definitionTable: FinalDefinitionTable, typeTable: TypeTable): Unit = {

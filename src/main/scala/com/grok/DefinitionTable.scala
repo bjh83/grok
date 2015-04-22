@@ -6,14 +6,20 @@ import scala.collection.mutable
  * Created by brendan.
  */
 abstract class DefinitionTable {
-  val definitions = mutable.HashMap[String, TypeDefinition]()
-  val symbolTable = mutable.Stack[mutable.Map[String, SymbolGroup]]()
+  val definitions = mutable.Map[String, TypeDefinition]()
+  val symbolTable = mutable.Stack[mutable.Map[String, SymbolGroup[_, Key, _]]]()
   push()
 
   def addDefinition(typeDefinition: TypeDefinition): Unit = {
-    val name = typeDefinition.key().name
+    val name: String = typeDefinition match {
+      case definition: StructDefinition => definition.identifier
+      case definition: UnionDefinition => definition.identifier
+      case definition: InterfaceDefinition => definition.identifier
+      // TODO: This is terrible!
+      case definition: Instance => definition.implementer.toString
+    }
     if (definitions.contains(name)) {
-      sys.error("Definition has already been defined: " + typeDefinition.identifier)
+      sys.error("Definition has already been defined: " + typeDefinition)
     }
     definitions(name) = typeDefinition
   }
@@ -45,17 +51,17 @@ abstract class DefinitionTable {
     }
   }
 
-  def push(): Unit = symbolTable.push(mutable.HashMap[String, SymbolGroup]())
+  def push(): Unit = symbolTable.push(mutable.HashMap[String, SymbolGroup[_, Key, _]]())
 
   def pop(): Unit = symbolTable.pop()
 
-  def addSymbol(definition: SymbolDefinition): Unit = {
-    val name = definition.key.name
+  def addSymbol(definition: SymbolDefinition[_, Key]): Unit = {
+    val name: String = definition.key.name
     val currentTable = symbolTable.head
     if (currentTable.contains(name)) {
       currentTable(name).add(definition)
     } else {
-      currentTable(name) = definition.buildSymbolGroup()
+      currentTable(name) = definition.buildSymbolGroup().asInstanceOf[SymbolGroup[_, Key, _]]
     }
   }
 
@@ -83,24 +89,26 @@ class InitialDefinitionTable extends DefinitionTable {
       case _ => false
     }.asInstanceOf[Set[UnionDefinition]]
     val typeTable = new TypeTableFactory(unions, structs).build()
-    val newSymbolTable = symbolTable.map(frame => mutable.Map(frame.mapValues(_.buildWithTable(typeTable)).toSeq: _*))
+    val newSymbolTable: mutable.Stack[mutable.Map[String, SymbolGroup[_, Key, _]]] =
+      symbolTable.map(frame => mutable.Map(frame.mapValues(_.buildWithTable(typeTable)).toSeq: _*))
+        .asInstanceOf[mutable.Stack[mutable.Map[String, SymbolGroup[_, Key, _]]]]
     new FinalDefinitionTable(definitions, newSymbolTable, typeTable)
   }
 }
 
-class FinalDefinitionTable(override protected val definitions: mutable.Map[String, TypeDefinition],
-                           override protected val symbolTable: mutable.Stack[mutable.Map[String, SymbolGroup]],
+class FinalDefinitionTable(override val definitions: mutable.Map[String, TypeDefinition],
+                           override val symbolTable: mutable.Stack[mutable.Map[String, SymbolGroup[_, Key, _]]],
                            val typeTable: TypeTable)
   extends DefinitionTable {
 
-  def updateSymbol(definition: SymbolDefinition): Unit = {
+  def updateSymbol(definition: SymbolDefinition[_, Key]): Unit = {
     symbolTable.find(_.contains(definition.key.name)) match {
       case Some(table) => table(definition.key.name).update(definition)
       case None => sys.error("No symbol, " + definition.key.name + ", was declared")
     }
   }
 
-  def lookupSymbol(key: Key): SymbolDefinition = {
+  def lookupSymbol(key: Key): SymbolDefinition[_, Key] = {
     symbolTable.find(_.contains(key.name)) match {
       case Some(table) => table(key.name).get(key)
       case None => sys.error("No symbol, " + key.name + ", was declared")

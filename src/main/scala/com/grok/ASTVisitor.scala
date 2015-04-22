@@ -3,7 +3,7 @@ package com.grok
 /**
  * Created by brendan.
  */
-abstract class ASTVisitor[T, D <: DefinitionTable] extends StatementVisitor[T] {
+abstract class ASTVisitor[T, D <: DefinitionTable] extends GeneralStatementVisitor[T] {
   def definitionTable: D
 
   override protected def internalVisitFunctionDefinition(functionDefinition: FunctionDefinition): T = {

@@ -4,7 +4,7 @@ package com.grok
  * Created by brendan.
  */
 class SemanticAnalyzer extends ASTVisitor[Unit, InitialDefinitionTable] {
-  override var definitionTable: InitialDefinitionTable = _
+  var definitionTable: InitialDefinitionTable = _
 
   def visitAST(ast: List[TopLevelStatement]): InitialDefinitionTable = {
     definitionTable = new InitialDefinitionTable

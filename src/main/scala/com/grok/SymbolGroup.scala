@@ -5,44 +5,37 @@ import scala.collection.mutable
 /**
  * Created by brendan.
  */
-abstract class SymbolGroup[S, K <: Key, D <: SymbolDefinition[S, K]] {
-  final val add: PartialFunction[SymbolDefinition, Unit] = {
-    case definition: D => internalAdd(definition)
-    case _ => sys.error("Incorrect symbol type.")
-  }
+abstract class SymbolGroup[+S, +K <: Key, +D <: SymbolDefinition[S, K]] {
+  def add(symbolDef: SymbolDefinition[_, _]): Unit
 
-  protected def internalAdd(symbol: D): Unit
+  def get(key: Key): SymbolDefinition[S, K]
 
-  final val get: PartialFunction[Key, SymbolDefinition] = {
-    case key: K => internalGet(key)
-    case _ => sys.error("Incorrect symbol type.")
-  }
+  def buildWithTable(typeTable: TypeTable): SymbolGroup[S, K, SymbolDefinition[S, K]]
 
-  protected def internalGet(key: K): SymbolDefinition
-
-  def buildWithTable(typeTable: TypeTable): SymbolGroup
-
-  final val update: PartialFunction[SymbolDefinition, Unit] = {
+  final val update: PartialFunction[SymbolDefinition[_, Key], Unit] = {
     case definition: D => internalUpdate(definition)
     case _ => sys.error("Incorrect symbol type.")
   }
 
-  protected def internalUpdate(definition: D): Unit
+  protected def internalUpdate(definition: SymbolDefinition[_, Key]): Unit
 }
 
 class VariableGroup(private var variableDeclaration: VariableDeclaration)
   extends SymbolGroup[VariableDeclaration, VariableKey, VariableSymbolDefinition] {
 
-  override protected def internalAdd(symbol: VariableSymbolDefinition): Unit = {
+  override def add(symbol: SymbolDefinition[_, _]): Unit = {
     sys.error("Symbol, " + variableDeclaration.identifier + ", already defined in current scope.")
   }
 
-  override protected def internalGet(key: VariableKey) = NormalVariableSymbolDefinition(variableDeclaration)
+  override def get(key: Key) = NormalVariableSymbolDefinition(variableDeclaration)
 
   override def buildWithTable(typeTable: TypeTable) = this
 
-  override def internalUpdate(definition: VariableSymbolDefinition): Unit = {
-    variableDeclaration = definition.symbol
+  override def internalUpdate(definition: SymbolDefinition[_, Key]): Unit = {
+    definition match {
+      case variableDef: VariableSymbolDefinition => variableDeclaration = variableDef.symbol
+      case _ => sys.error("Incorrect symbol type.")
+    }
   }
 }
 
@@ -51,32 +44,36 @@ class InitialFunctionGroup(protected val name: String, protected val returnType:
 
   protected val map = mutable.Map[FunctionKey, FunctionSymbolDefinition]()
 
-  override protected def internalAdd(symbol: FunctionSymbolDefinition): Unit = {
-    if (symbol.symbol.returnType == returnType) {
-      if (!map.contains(symbol.key)) {
-        map(symbol.key) = symbol
+  override def add(definition: SymbolDefinition[_, _]): Unit = definition match {
+    case symbol: FunctionSymbolDefinition =>
+      if (symbol.symbol.returnType == returnType) {
+        if (!map.contains(symbol.key)) {
+          map(symbol.key) = symbol
+        } else {
+          sys.error("Function with signature, " + symbol.key + ", already declared.")
+        }
       } else {
-        sys.error("Function with signature, " + symbol.key + ", already declared.")
+        sys.error("Multiple functions of name, " + name + ", with different return types.")
       }
-    } else {
-      sys.error("Multiple functions of name, " + name + ", with different return types.")
-    }
+    case _ => sys.error("Incorrect symbol type.")
   }
 
-  override protected def internalGet(key: FunctionKey): FunctionSymbolDefinition = {
+  override def get(key: Key): FunctionSymbolDefinition = {
     sys.error("TypeTable must be provided before function keys may be resolved.")
   }
 
-  override protected def internalUpdate(symbol: FunctionSymbolDefinition): Unit = {
-    if (symbol.symbol.returnType == returnType) {
-      if (map.contains(symbol.key)) {
-        map(symbol.key) = symbol
+  override def internalUpdate(definition: SymbolDefinition[_, Key]): Unit = definition match {
+    case symbol: FunctionSymbolDefinition =>
+      if (symbol.symbol.returnType == returnType) {
+        if (map.contains(symbol.key)) {
+          map(symbol.key) = symbol
+        } else {
+          sys.error("Function with signature, " + symbol.key + ", was not declared.")
+        }
       } else {
-        sys.error("Function with signature, " + symbol.key + ", was not declared.")
+        sys.error("Multiple functions of name, " + name + ", with different return types.")
       }
-    } else {
-      sys.error("Multiple functions of name, " + name + ", with different return types.")
-    }
+    case _ => sys.error("Incorrect symbol type.")
   }
 
   override def buildWithTable(typeTable: TypeTable) = new FinalFunctionGroup(name, returnType, typeTable)
@@ -85,7 +82,13 @@ class InitialFunctionGroup(protected val name: String, protected val returnType:
 class FinalFunctionGroup(name: String,
                          returnType: Type,
                          private val typeTable: TypeTable) extends InitialFunctionGroup(name, returnType) {
-  override protected def internalGet(outsideKey: FunctionKey): FunctionSymbolDefinition = {
+  override def get(key: Key): FunctionSymbolDefinition = {
+    key match {
+      case actualKey: FunctionKey => internalGet(actualKey)
+      case _ => sys.error("Incorrect symbol type.")
+    }
+  }
+  protected def internalGet(outsideKey: FunctionKey): FunctionSymbolDefinition = {
     val keyDefinitionPairs = map.keySet
     val candidates = keyDefinitionPairs.filter { key =>
       typeTable.derives(outsideKey.toType(returnType), key.toType(returnType))

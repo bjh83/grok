@@ -50,9 +50,9 @@ object TypeTableFactory {
   }
 
   def buildUnionTypeMap(unions: Map[SimpleType, UnionDefinition]): Map[Type, Set[Type]] = {
-    val unionsToMembers = unions.mapValues(_.members.toSet)
-    val memberUnionPairs = unionsToMembers.toSet.flatMap { case (union, members) =>
-        members.map(member => (member, union))
+    val unionsToMembers: Set[(SimpleType, Set[Type])] = unions.mapValues(_.members.toSet).toSet
+    val memberUnionPairs = unionsToMembers.flatMap[(Type, SimpleType), Set[(Type, SimpleType)]] { case (union: SimpleType, members: Set[Type]) =>
+        members.map { member: Type => (member, union) }
     }
     memberUnionPairs.groupBy { case (member, union) => member } // Map pairs to members
       .mapValues(_.map { case (member, union) => union } ) // reduce pair to just union

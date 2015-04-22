@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
  * Created by brendan.
  */
 class CodeBlock extends AbstractSequentialList[Instruction] {
-  private class CodeBlockNode(var prev: CodeBlockNode, var next: CodeBlockNode, var instruction: Instruction)
+  class CodeBlockNode(var prev: CodeBlockNode, var next: CodeBlockNode, var instruction: Instruction)
 
   private object CodeBlockNode {
     def apply(prev: CodeBlockNode, next: CodeBlockNode, instruction: Instruction): CodeBlockNode =
@@ -57,7 +57,7 @@ class CodeBlock extends AbstractSequentialList[Instruction] {
     }
   }
 
-  case class CodeBlockLabel(node: => CodeBlockNode) extends Label
+  case class LateBindingLabel(node: CodeBlockNode)(modifier: CodeBlockNode => CodeBlockNode) extends Label
 
   private val headNode: CodeBlockNode = CodeBlockNode(null, null, null)
   private val tailNode: CodeBlockNode = CodeBlockNode(null, null, null)
@@ -67,19 +67,20 @@ class CodeBlock extends AbstractSequentialList[Instruction] {
     tailNode.prev = headNode
   }
 
-  def blockStart: Label = {
-    val next = headNode.next
-    CodeBlockLabel(next)
-  }
-  def blockEnd: Label = {
-    val prev = tailNode.prev
-    CodeBlockLabel(prev.next)
-  }
+  def blockStart: Label = LateBindingLabel(headNode.next)(node => node)
 
-  override def listIterator: ListIterator[Instruction] = new CodeBlockIterator(headNode)
+  def blockEnd: Label = LateBindingLabel(tailNode.prev)(node => node.next)
+
+  override def listIterator(index: Int): ListIterator[Instruction] = {
+    val iter = new CodeBlockIterator(headNode)
+    for (i <- 0 until index) {
+      iter.next()
+    }
+    iter
+  }
 
   override def size(): Int = {
-    val iter = listIterator
+    val iter = listIterator(0)
     while (iter.hasNext) {
       iter.next()
     }
@@ -106,7 +107,7 @@ class CodeBlock extends AbstractSequentialList[Instruction] {
     this
   }
 
-  override def toString(): String = {
+  override def toString: String = {
     this.asScala.map(_.toString).reduce((left, right) => left + "\n" + right)
   }
 }
@@ -114,14 +115,20 @@ class CodeBlock extends AbstractSequentialList[Instruction] {
 object CodeBlock {
   def apply(): CodeBlock = new CodeBlock
 
-  def apply(instructions: Instruction*): CodeBlock = {
+  // DAMN YOU TYPE ERASURE!!!!
+  def apply(instruction: Instruction): CodeBlock = {
+    apply.append(instruction)
+  }
+
+  def apply(instruction: Instruction, instructions: Instruction*): CodeBlock = {
     val block = apply()
-    instructions.foreach(block.append)
+    (instruction +: instructions).foreach(block.append)
     block
   }
 
-  def apply(blocks: CodeBlock*): CodeBlock = {
-    val block = apply()
+  def apply(block: CodeBlock): CodeBlock = block
+
+  def apply(block: CodeBlock, blocks: CodeBlock*): CodeBlock = {
     blocks.foreach(block.append)
     block
   }

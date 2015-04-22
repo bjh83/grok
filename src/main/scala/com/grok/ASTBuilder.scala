@@ -341,7 +341,7 @@ class TypeVisitor extends GrokBaseVisitor[Type] {
     val typeParams = nullToOption(ctx.typeParameters()).map(typeParametersVisit).toList.flatten
     val right = nullToOption(ctx.`type`()).map(visit)
     if (right.nonEmpty) {
-      FunctionType(SimpleType(identifier, typeParams), right.get)
+      FunctionType(List(SimpleType(identifier, typeParams)), right.get)
     } else {
       SimpleType(identifier, typeParams)
     }
