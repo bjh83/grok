@@ -108,7 +108,7 @@ case class PushFloat(value: FloatOperand) extends Instruction
 case class PushBool(value: BoolOperand) extends Instruction
 case class PushReference(value: ReferenceOperand) extends Instruction
 
-case class Pop(offset: Int) extends ThreeAddressCodeElement
+case class Pop(offset: Int) extends Instruction
 
 case class ParamFromStackInt(result: IntOperand, offset: Int) extends Operation[IntOperand]
 case class ParamFromStackFloat(result: FloatOperand, offset: Int) extends Operation[FloatOperand]

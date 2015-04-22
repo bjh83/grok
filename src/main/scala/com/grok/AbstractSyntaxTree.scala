@@ -47,7 +47,7 @@ abstract class Statement extends TopLevelStatement
 // Statement ::=
 case class VariableDeclaration(mutability: Mutability,
                                identifier: String,
-                               varType: Option[Type],
+                               var varType: Option[Type],
                                value: Expression) extends Statement
 
 case class VariableAssignment(identifier: String, value: Expression) extends Statement {

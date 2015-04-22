@@ -33,7 +33,14 @@ class TypeTable(val table: Map[Type, Set[Type]]) {
   }
 
   private def generalDerives(base: Type, derived: Type): Boolean = {
-    table(base).map(nextBase => derives(nextBase, derived)).reduce((left, right) => left || right)
+    if (base == derived) {
+      true
+    } else if (base == TopType) {
+      false
+    } else {
+      val directlyDerived = table(base) - base
+      directlyDerived.map(nextBase => derives(nextBase, derived)).foldLeft(false)((left, right) => left || right)
+    }
   }
 
   private def functionDerives(baseType: FunctionType, derivedType: FunctionType): Boolean = {

@@ -1,25 +1,21 @@
 package com.grok
 
+import java.util
 import java.util.ListIterator
 import java.util.AbstractSequentialList
 
 import scala.collection.JavaConverters._
 
+import com.grok.CodeBlock.CodeBlockNode
+
 /**
  * Created by brendan.
  */
 class CodeBlock extends AbstractSequentialList[Instruction] {
-  class CodeBlockNode(var prev: CodeBlockNode, var next: CodeBlockNode, var instruction: Instruction)
-
-  private object CodeBlockNode {
-    def apply(prev: CodeBlockNode, next: CodeBlockNode, instruction: Instruction): CodeBlockNode =
-      new CodeBlockNode(prev, next, instruction)
-  }
-
   private class CodeBlockIterator(var currentNode: CodeBlockNode) extends ListIterator[Instruction] {
     var currentIndex = -1
 
-    override def hasNext: Boolean = currentNode.next != null
+    override def hasNext: Boolean = currentNode.next != tailNode
 
     override def next(): Instruction = {
       currentNode = currentNode.next
@@ -40,7 +36,7 @@ class CodeBlock extends AbstractSequentialList[Instruction] {
       next.prev = prev
     }
 
-    override def previousIndex(): Int = currentIndex - 1
+    override def previousIndex(): Int = currentIndex
 
     override def hasPrevious: Boolean = currentNode.prev != null
 
@@ -51,9 +47,10 @@ class CodeBlock extends AbstractSequentialList[Instruction] {
     }
 
     override def previous(): Instruction = {
+      val prev = currentNode.instruction
       currentNode = currentNode.prev
       currentIndex -= 1
-      currentNode.instruction
+      prev
     }
   }
 
@@ -87,14 +84,26 @@ class CodeBlock extends AbstractSequentialList[Instruction] {
     iter.previousIndex() + 1
   }
 
+  // OpenJDK does not follow the Java specification on this >:-(
+  override def addAll(index: Int, collection: util.Collection[_ <: Instruction]): Boolean = {
+    val iterThis = listIterator(index)
+    val iterThat = collection.iterator()
+    var modified = false
+    while (iterThat.hasNext) {
+      iterThis.add(iterThat.next())
+      iterThis.next()
+      modified = true
+    }
+    modified
+  }
+
   def prepend(instruction: Instruction): CodeBlock = {
     add(0, instruction)
     this
   }
 
   def prepend(block: CodeBlock): CodeBlock = {
-    addAll(0, block)
-    this
+    block.append(this)
   }
 
   def append(instruction: Instruction): CodeBlock = {
@@ -103,16 +112,37 @@ class CodeBlock extends AbstractSequentialList[Instruction] {
   }
 
   def append(block: CodeBlock): CodeBlock = {
-    addAll(size(), block)
+    val thisLast = tailNode.prev
+    val thatFirst = block.headNode.next
+    thisLast.next = thatFirst
+    thatFirst.prev = thisLast
+
+    val thatLast = block.tailNode.prev
+    tailNode.prev = thatLast
+    thatLast.next = tailNode
     this
   }
 
   override def toString: String = {
-    this.asScala.map(_.toString).reduce((left, right) => left + "\n" + right)
+    this.asScala.map(_.toString).foldLeft("")((left, right) => left + "\n" + right)
+//    var node = headNode.next
+//    var string = ""
+//    while (node.next != null) {
+//      string += node.instruction
+//      node = node.next
+//    }
+//    string
   }
 }
 
 object CodeBlock {
+  class CodeBlockNode(var prev: CodeBlockNode, var next: CodeBlockNode, var instruction: Instruction)
+
+  object CodeBlockNode {
+    def apply(prev: CodeBlockNode, next: CodeBlockNode, instruction: Instruction): CodeBlockNode =
+      new CodeBlockNode(prev, next, instruction)
+  }
+
   def apply(): CodeBlock = new CodeBlock
 
   // DAMN YOU TYPE ERASURE!!!!

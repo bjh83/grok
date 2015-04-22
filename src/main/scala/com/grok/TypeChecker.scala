@@ -42,6 +42,7 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
       case None =>
         val VariableDeclaration(mutability, name, _, value) = variableDeclaration
         val newVariableDeclaration = VariableDeclaration(mutability, name, Some(actualType), value)
+        variableDeclaration.varType = Some(actualType)
         definitionTable.addSymbol(NormalVariableSymbolDefinition(newVariableDeclaration))
     }
     UnitType
