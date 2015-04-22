@@ -1,107 +1,171 @@
 package com.grok
 
 /**
- * Created by brendan on 3/6/15.
+ * Created by brendan.
  */
-class SemanticAnalyzer {
-  private var definitionTable = new DefinitionTable
+class SemanticAnalyzer extends ASTVisitor[Unit, InitialDefinitionTable] {
+  override var definitionTable: InitialDefinitionTable = _
 
-  def analyze(topLevelStatements: List[TopLevelStatement]): CompilationUnit = {
-    definitionTable = new DefinitionTable
-    topLevelStatements.foreach(visitTopLevelStatement)
-    CompilationUnit(topLevelStatements, definitionTable)
+  def visitAST(ast: List[TopLevelStatement]): InitialDefinitionTable = {
+    definitionTable = new InitialDefinitionTable
+    ast.foreach(visitTopLevelStatement)
+    definitionTable
   }
 
-  private val visitTopLevelStatement: PartialFunction[TopLevelStatement, Unit] = {
-    case functionDefinition: FunctionDefinition => visitFunctionDefinition(functionDefinition)
-    case methodDefinition: MethodDefinition => sys.error("Not yet implemented")
-    case structDefinition: StructDefinition => definitionTable.addDefinition(structDefinition)
-    case unionDefinition: UnionDefinition => definitionTable.addDefinition(unionDefinition)
-    case interfaceDefinition: InterfaceDefinition => definitionTable.addDefinition(interfaceDefinition)
-    case instance: Instance => sys.error("Not yet implemented")
-    case statement: Statement => visitStatement(statement)
+  override protected def internalVisitFunctionDefinition(functionDefinition: FunctionDefinition): Unit = {
+    definitionTable.addSymbol(FunctionSymbolDefinition(functionDefinition))
+    super.internalVisitFunctionDefinition(functionDefinition)
   }
 
-  private def visitFunctionDefinition(functionDefinition: FunctionDefinition): Unit = {
-    val FunctionDefinition(_, _, parameters, _, definition) = functionDefinition
-    definitionTable.addSymbol(functionDefinition)
-    definitionTable.push()
-    parameters.foreach(definitionTable.addSymbol)
-    visitExpression(definition)
-    definitionTable.pop()
+  override protected def visitFunctionDefinition(functionDefinition: FunctionDefinition): Unit = {
+    functionDefinition.parameters.foreach(param => definitionTable.addSymbol(ParameterSymbolDefinition(param)))
+    internalVisitExpression(functionDefinition.definition)
   }
 
-  private val visitStatement: PartialFunction[Statement, Unit] = {
-    case variableDeclaration: VariableDeclaration => definitionTable.addSymbol(variableDeclaration)
-    case variableAssignment: VariableAssignment => definitionTable.containsSymbolFail(VariableKey(variableAssignment.identifier))
-    case structAssignment: StructAssignment => definitionTable.containsSymbolFail(VariableKey(structAssignment.identifier))
-    case ExpressionWrapper(expr) => visitExpression(expr)
+  protected def visitMethodDefinition(methodDefinition: MethodDefinition): Unit = {
+    sys.error("Methods are not yet implemented.")
   }
 
-  private val visitExpression: PartialFunction[Expression, Unit] = {
-    case block: Block => visitBlock(block)
-    case lambda: Lambda =>
-    case booleanExpression: BooleanExpression => visitBooleanExpression(booleanExpression)
-    case arithmeticExpression: ArithmeticExpression => visitArithmeticExpression(arithmeticExpression)
-    case Variable(variable) => definitionTable.containsSymbolFail(VariableKey(variable))
-    case IfExpression(condition, body, alternative) => visitIfExpression(condition, body, alternative)
-    case WhileExpression(condition, body) => visitWhileExpression(condition, body)
-    case MatchExpression(expression, cases) => visitMatchExpression(expression, cases)
-    case FunctionCall(identifier, params) => visitFunctionCall(identifier, params)
-    case MethodCall(receiver, identifier, params) => sys.error("Not yet implemented")
-    case StructAccess(receiver, identifier) => visitStructAccess(receiver, identifier)
-    case This => sys.error("Not yet implemented")
+  protected def visitStructDefinition(structDefinition: StructDefinition): Unit = {
+    definitionTable.addDefinition(structDefinition)
+    val StructDefinition(name, typeParams, fields) = structDefinition
+    val params = fields.map { case Field(fieldName, fieldType, _) => Parameter(fieldName, fieldType) }
+    val returnType = TypeTableFactory.structToType(structDefinition)
+    val paramsAsVariables = params.map { param =>
+      val variable = Variable(param.identifier)
+      variable.`type` = param.paramType
+      variable
+    }
+    definitionTable.addSymbol(FunctionSymbolDefinition(FunctionDefinition(
+      name,
+      typeParams,
+      params,
+      returnType,
+      StructConstructor(structDefinition, paramsAsVariables))))
   }
 
-  private def visitBlock(block: Block): Unit = {
-    definitionTable.push()
-    block.statements.foreach(visitStatement)
-    block.expression.foreach(visitExpression)
-    definitionTable.pop()
-  }
-
-  private val visitBooleanExpression: PartialFunction[BooleanExpression, Unit] = {
-    case BooleanBinaryExpression(left, _, right) => visitBooleanExpression(left); visitBooleanExpression(right)
-    case BooleanInverse(value) => visitBooleanExpression(value)
-    case BooleanComparison(left, _, right) => visitArithmeticExpression(left); visitArithmeticExpression(right)
-    case BooleanExpressionWrapper(value) => visitExpression(value)
-    case _: BooleanConstant =>
-  }
-
-  private val visitArithmeticExpression: PartialFunction[ArithmeticExpression, Unit] = {
-    case ArithmeticBinaryExpression(left, _, right) => visitArithmeticExpression(left); visitArithmeticExpression(right)
-    case ArithmeticExpressionWrapper(expr) => visitExpression(expr)
-    case ArithmeticIntegralConstant(_) =>
-    case ArithmeticFloatingPointConstant(_) =>
-  }
-
-  private def visitIfExpression(condition: BooleanExpression, body: Block, alternative: Option[Expression]): Unit = {
-    visitBooleanExpression(condition)
-    visitBlock(body)
-    alternative.foreach(visitExpression)
-  }
-
-  private def visitWhileExpression(condition: BooleanExpression, body: Block): Unit = {
-    visitBooleanExpression(condition)
-    visitBlock(body)
-  }
-
-  private def visitMatchExpression(expression: Expression, cases: List[Case]): Unit = {
-    visitExpression(expression)
-    cases.foreach { case Case(param, expr) =>
-      definitionTable.push()
-      definitionTable.addSymbol(param)
-      visitExpression(expr)
-      definitionTable.pop()
+  protected def visitUnionDefinition(unionDefinition: UnionDefinition): Unit = {
+    definitionTable.addDefinition(unionDefinition)
+    val UnionDefinition(name, typeParams, members) = unionDefinition
+    // TODO: Write actual munging function.
+    val params = members.map(member => Parameter("$" + member, member))
+    val returnType = TypeTableFactory.unionToType(unionDefinition)
+    val paramsToVariables = params.map { param =>
+      val variable = Variable(param.identifier)
+      variable.`type` = param.paramType
+      (param, variable)
+    }
+    paramsToVariables.foreach { case (param, variable) =>
+      definitionTable.addSymbol(FunctionSymbolDefinition(FunctionDefinition(
+        name,
+        typeParams,
+        List(param),
+        returnType,
+        UnionConstructor(unionDefinition, variable)
+      )))
     }
   }
 
-  private def visitFunctionCall(identifier: String, params: List[Expression]): Unit = {
-    definitionTable.containsSymbolFail(VariableKey(identifier))
-    params.foreach(visitExpression)
+  protected def visitInterfaceDefinition(interfaceDefinition: InterfaceDefinition): Unit = {
+    definitionTable.addDefinition(interfaceDefinition)
   }
 
-  private def visitStructAccess(receiver: Expression, member: String): Unit = {
-    visitExpression(receiver)
+  protected def visitInstance(instance: Instance): Unit = {
+    definitionTable.addDefinition(instance)
   }
+
+  override protected def visitVariableDeclaration(variableDeclaration: VariableDeclaration): Unit = {
+    internalVisitExpression(variableDeclaration.value)
+    definitionTable.addSymbol(NormalVariableSymbolDefinition(variableDeclaration))
+  }
+
+  protected def visitVariableAssignment(variableAssignment: VariableAssignment): Unit = {
+    definitionTable.containsSymbolFail(VariableKey(variableAssignment.identifier))
+    internalVisitExpression(variableAssignment.value)
+  }
+
+  protected def visitStructAssignment(structAssignment: StructAssignment): Unit = {
+    definitionTable.containsSymbolFail(VariableKey(structAssignment.identifier))
+    internalVisitExpression(structAssignment.value)
+  }
+
+  protected def visitBlock(block: Block): Unit = {
+    block.statements.map(internalVisitStatement)
+    block.expression.map(internalVisitExpression)
+  }
+
+  protected def visitLambda(lambda: Lambda): Unit = ()
+
+  protected def visitVariable(variable: Variable): Unit = {
+    definitionTable.containsSymbolFail(VariableKey(variable.identifier))
+  }
+
+  protected def visitIfExpression(ifExpression: IfExpression): Unit = {
+    internalVisitBooleanExpression(ifExpression.condition)
+    internalVisitExpression(ifExpression.body)
+    ifExpression.alternative.map(internalVisitExpression)
+  }
+
+  protected def visitWhileExpression(whileExpression: WhileExpression): Unit = {
+    internalVisitBooleanExpression(whileExpression.condition)
+    internalVisitExpression(whileExpression.body)
+  }
+
+  protected def visitMatchExpression(matchExpression: MatchExpression): Unit = {
+    internalVisitExpression(matchExpression.expression)
+    matchExpression.cases.map(internalVisitCase)
+  }
+
+  protected def visitCase(caseExpression: Case): Unit = ()
+
+  protected def visitFunctionCall(functionCall: FunctionCall): Unit = {
+    // TODO(Brendan): Even though this works in practice, we should provide a simple key constructor for function calls
+    // when type information does not yet exist.
+    definitionTable.containsSymbolFail(VariableKey(functionCall.identifier))
+  }
+
+  protected def visitMethodCall(methodCall: MethodCall): Unit = {
+    // TODO(Brendan): Even though this works in practice, we should provide a simple key constructor for function calls
+    // when type information does not yet exist.
+    definitionTable.containsSymbolFail(VariableKey(methodCall.identifier))
+  }
+
+  protected def visitStructAccess(structAccess: StructAccess): Unit = {
+    definitionTable.containsSymbolFail(VariableKey(structAccess.identifier))
+  }
+
+  protected def visitThis(): Unit = ()
+
+  protected def visitBooleanBinaryExpression(booleanBinaryExpression: BooleanBinaryExpression): Unit = {
+    internalVisitBooleanExpression(booleanBinaryExpression.left)
+    internalVisitBooleanExpression(booleanBinaryExpression.right)
+  }
+
+  protected def visitBooleanInverse(booleanInverse: BooleanInverse): Unit = {
+    internalVisitBooleanExpression(booleanInverse.value)
+  }
+
+  protected def visitBooleanComparison(booleanComparison: BooleanComparison): Unit = {
+    internalVisitArithmeticExpression(booleanComparison.left)
+    internalVisitArithmeticExpression(booleanComparison.right)
+  }
+
+  protected def visitBooleanExpressionWrapper(booleanExpressionWrapper: BooleanExpressionWrapper): Unit = {
+    internalVisitExpression(booleanExpressionWrapper)
+  }
+
+  protected def visitBooleanConstant(booleanConstant: BooleanConstant): Unit = ()
+
+  protected def visitArithmeticBinaryExpression(arithmeticBinaryExpression: ArithmeticBinaryExpression): Unit = {
+    internalVisitArithmeticExpression(arithmeticBinaryExpression.left)
+    internalVisitArithmeticExpression(arithmeticBinaryExpression.right)
+  }
+
+  protected def visitArithmeticExpressionWrapper(arithmeticExpressionWrapper: ArithmeticExpressionWrapper): Unit = {
+    internalVisitExpression(arithmeticExpressionWrapper.expression)
+  }
+
+  protected def visitArithmeticIntegralConstant(arithmeticIntegralConstant: ArithmeticIntegralConstant): Unit = ()
+
+  protected def visitArithmeticFloatingPointConstant(arithmeticFloatingPointConstant: ArithmeticFloatingPointConstant): Unit = ()
 }

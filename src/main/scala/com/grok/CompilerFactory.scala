@@ -38,8 +38,10 @@ class DefaultCompiler extends Compiler {
 
   private def compileSource(file: File): Unit = {
     val ast = compileToAST(new ANTLRInputStream(new FileInputStream(file)))
-    val compilationUnit = buildSymbolTable(ast)
-    compilationUnit.topLevelStatements.foreach(println)
+    val symbolTable = buildSymbolTable(ast)
+    typeCheck(ast, symbolTable)
+    val code = generateIntermediateCode(ast)
+    println(code)
   }
 
   private def compileToAST(inputStream: ANTLRInputStream): List[TopLevelStatement] = {
@@ -49,7 +51,18 @@ class DefaultCompiler extends Compiler {
     buildAST(parser.compilationUnit())
   }
 
-  private def buildSymbolTable(ast: List[TopLevelStatement]): CompilationUnit = {
-    (new SemanticAnalyzer).analyze(ast)
+  private def buildSymbolTable(ast: List[TopLevelStatement]): InitialDefinitionTable = {
+    (new SemanticAnalyzer).visitAST(ast)
+  }
+
+  private def typeCheck(ast: List[TopLevelStatement], symbolTable: InitialDefinitionTable): Unit = {
+    val unionDefinitions = symbolTable.definitions.values.filter(_.isInstanceOf[UnionDefinition]).toSet.asInstanceOf[Set[UnionDefinition]]
+    val structDefinitions = symbolTable.definitions.values.filter(_.isInstanceOf[StructDefinition]).toSet.asInstanceOf[Set[StructDefinition]]
+    val typeTable = new TypeTableFactory(unionDefinitions, structDefinitions).build()
+    (new TypeChecker).visitAST(ast, symbolTable.buildFinalDefinitionTable(), typeTable)
+  }
+
+  private def generateIntermediateCode(ast: List[TopLevelStatement]): CodeBlock = {
+    (new CodeGenerator).visitAST(ast)
   }
 }
