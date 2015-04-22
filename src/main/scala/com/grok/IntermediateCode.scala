@@ -16,7 +16,7 @@ trait ConstOperand[T] {
   def value: T
 }
 
-abstract class ArithmeticOperand extends Operand
+sealed abstract class ArithmeticOperand extends Operand
 abstract class IntOperand extends ArithmeticOperand
 abstract class FloatOperand extends ArithmeticOperand
 abstract class BoolOperand extends Operand

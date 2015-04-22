@@ -88,6 +88,7 @@ class CodeGenerator {
       case expr: MethodCall => visitMethodCall(expr, operand)
       case expr: StructAccess => visitStructAccess(expr, operand)
       case This => visitThis(operand)
+      case expr: Case => visitCase(expr, operand)
       case expr: StructConstructor => visitStructConstructor(expr, operand.asInstanceOf[ReferenceOperand])
       case expr: UnionConstructor => visitUnionConstructor(expr, operand.asInstanceOf[ReferenceOperand])
     }
@@ -402,6 +403,7 @@ class CodeGenerator {
           val intOperand = newTempInt()
           CodeBlock(ToFloat(result, intOperand))
             .append(visitExpression(wrapper.expression, result))
+        case _ => sys.error("Where is your god now?")
       }
     }
   }
