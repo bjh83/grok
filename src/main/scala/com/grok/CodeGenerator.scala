@@ -95,6 +95,7 @@ class CodeGenerator {
       case expr: Case => visitCase(expr, operand)
       case expr: StructConstructor => visitStructConstructor(expr, operand.asInstanceOf[ReferenceOperand])
       case expr: UnionConstructor => visitUnionConstructor(expr, operand.asInstanceOf[ReferenceOperand])
+      case expr: PrintExpression => visitPrintExpression(expr)
     }
   }
 
@@ -314,6 +315,11 @@ class CodeGenerator {
       case operand: BoolOperand => block.append(CompoundAssignBool(operand, returnOperand, selector))
       case operand: ReferenceOperand => block.append(CompoundAssignReference(operand, returnOperand, selector))
     }
+  }
+
+  protected def visitPrintExpression(printExpression: PrintExpression): CodeBlock = {
+    val paramOperand = newRealOperand(printExpression.value.identifier, printExpression.value.`type`)
+    CodeBlock(Print(paramOperand))
   }
 
   protected def visitBooleanBinaryExpression(booleanBinaryExpression: BooleanBinaryExpression, operand: BoolOperand): CodeBlock = {

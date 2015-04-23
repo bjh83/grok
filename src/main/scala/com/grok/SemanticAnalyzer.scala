@@ -8,8 +8,41 @@ class SemanticAnalyzer extends ASTVisitor[Unit, InitialDefinitionTable] {
 
   def visitAST(ast: List[TopLevelStatement]): InitialDefinitionTable = {
     definitionTable = new InitialDefinitionTable
+    definitionTable.addSymbol(FunctionSymbolDefinition(FunctionDefinition("println", List(), List(Parameter("value", IntegralType)), UnitType, PrintExpression(Variable("value")))))
     ast.foreach(visitTopLevelStatement)
     definitionTable
+  }
+
+  private def addPrintFunctions(): Unit = {
+    val intVariable = Variable("value")
+    intVariable.`type` = IntegralType
+    definitionTable.addSymbol(FunctionSymbolDefinition(FunctionDefinition(
+      "println",
+      List(),
+      List(Parameter("value", IntegralType)),
+      UnitType,
+      PrintExpression(intVariable)
+    )))
+
+    val floatVariable = Variable("value")
+    floatVariable.`type` = FloatingPointType
+    definitionTable.addSymbol(FunctionSymbolDefinition(FunctionDefinition(
+      "println",
+      List(),
+      List(Parameter("value", FloatingPointType)),
+      UnitType,
+      PrintExpression(floatVariable)
+    )))
+
+    val boolVariable = Variable("value")
+    boolVariable.`type` = BoolType
+    definitionTable.addSymbol(FunctionSymbolDefinition(FunctionDefinition(
+      "println",
+      List(),
+      List(Parameter("value", BoolType)),
+      UnitType,
+      PrintExpression(boolVariable)
+    )))
   }
 
   override protected def internalVisitFunctionDefinition(functionDefinition: FunctionDefinition): Unit = {

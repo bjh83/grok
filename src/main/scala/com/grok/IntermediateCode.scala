@@ -36,7 +36,7 @@ case class ReferenceRealOperand(name: String) extends ReferenceOperand with Real
 sealed abstract class ThreeAddressCodeElement
 
 abstract class Instruction extends ThreeAddressCodeElement
-abstract class Operation[T <: Operand] extends Instruction {
+abstract class Operation[+T <: Operand] extends Instruction {
   def result: T
 }
 
@@ -163,3 +163,6 @@ case class ReturnFloat(value: FloatOperand) extends Instruction
 case class ReturnBool(value: BoolOperand) extends Instruction
 case class ReturnReference(value: ReferenceOperand) extends Instruction
 case object Return extends Instruction
+
+// Debugging
+case class Print(value: Operand) extends Instruction

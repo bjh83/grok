@@ -113,6 +113,7 @@ case class StructConstructor(definition: StructDefinition, params: List[Variable
 
 case class UnionConstructor(definition: UnionDefinition, param: Variable) extends Constructor[UnionDefinition]
 
+case class PrintExpression(value: Variable) extends Expression
 
 // BooleanExpression ::=
 case class BooleanBinaryExpression(left: BooleanExpression,
