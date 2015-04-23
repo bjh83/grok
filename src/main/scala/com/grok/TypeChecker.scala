@@ -218,11 +218,13 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
   protected def visitStructAccess(structAccess: StructAccess): Type = {
     val structType = internalVisitExpression(structAccess.receiver)
     val structDefinition = definitionTable.lookupStructDefinition(structType)
-    structDefinition.fields.filter(_.identifier == structAccess.identifier) match {
+    val fieldType = structDefinition.fields.filter(_.identifier == structAccess.identifier) match {
       case List(Field(_, fieldType, _)) => fieldType
       case List() => sys.error("Could not find field named, " + structAccess.identifier)
       case _ => sys.error("Multiple fields resolved to name.")
     }
+    structAccess.structDef = structDefinition
+    fieldType
   }
 
   override protected def internalVisitStructAccess(structAccess: StructAccess): Type = {
