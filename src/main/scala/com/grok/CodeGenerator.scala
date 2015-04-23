@@ -52,7 +52,11 @@ class CodeGenerator {
   }
 
   def visitAST(ast: List[TopLevelStatement]): CodeBlock = {
-    ast.map(visitTopLevelStatement).reduce((left, right) => left.append(right))
+    val block = ast
+      .map(visitTopLevelStatement)
+      .reduce((left, right) => left.append(right))
+    val main = functionLabelMap.keys.find(_.identifier == "main").getOrElse(sys.error("Must provide main method!"))
+    CodeBlock(CallFunc(functionLabelMap(main))).append(block)
   }
 
   protected def visitArithmeticExpression[T <: ArithmeticOperand](arithmeticExpression: ArithmeticExpression, operand: T): CodeBlock = {

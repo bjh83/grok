@@ -75,11 +75,33 @@ case class ComparisonFloat(result: BoolOperand, left: FloatOperand, op: Comparis
 case class AssignReference(result: ReferenceOperand, value: ReferenceOperand) extends Assign[ReferenceOperand]
 
 // Branches.
-abstract class Label extends ThreeAddressCodeElement
-case class LabelFuture(future: () => Label) extends Label
-case class Goto(label: Label) extends Instruction
-case class ConditionalGoto(condition: BoolOperand, label: Label) extends Instruction
-case class ConditionalGotoNot(condition: BoolOperand, label: Label) extends Instruction
+abstract class Label extends ThreeAddressCodeElement {
+  def toRealizedLabel: RealizedLabel
+}
+case class LabelFuture(future: () => Label) extends Label {
+  def toRealizedLabel = future().toRealizedLabel
+}
+case class RealizedLabel(index: Int) extends Label {
+  def toRealizedLabel = this
+
+  override def toString = "L%03d".format(index)
+}
+
+trait GotoInterface {
+  def label: Label
+
+  def realizeLabel: Instruction
+}
+
+case class Goto(label: Label) extends Instruction with GotoInterface {
+  def realizeLabel = Goto(label.toRealizedLabel)
+}
+case class ConditionalGoto(condition: BoolOperand, label: Label) extends Instruction with GotoInterface {
+  def realizeLabel = ConditionalGoto(condition, label.toRealizedLabel)
+}
+case class ConditionalGotoNot(condition: BoolOperand, label: Label) extends Instruction with GotoInterface {
+  def realizeLabel = ConditionalGotoNot(condition, label.toRealizedLabel)
+}
 
 // Compound data types.
 abstract class CompoundDataType extends ThreeAddressCodeElement
@@ -116,11 +138,25 @@ case class ParamFromStackFloat(result: FloatOperand, offset: Int) extends Operat
 case class ParamFromStackBool(result: BoolOperand, offset: Int) extends Operation[BoolOperand]
 case class ParamFromStackReference(result: ReferenceOperand, offset: Int) extends Operation[ReferenceOperand]
 
-case class CallFuncInt(result: IntOperand, label: Label) extends Operation[IntOperand]
-case class CallFuncFloat(result: FloatOperand, label: Label) extends Operation[FloatOperand]
-case class CallFuncBool(result: BoolOperand, label: Label) extends Operation[BoolOperand]
-case class CallFuncReference(result: ReferenceOperand, label: Label) extends Operation[ReferenceOperand]
-case class CallFunc(label: Label) extends Instruction
+case class CallFuncInt(result: IntOperand, label: Label) extends Operation[IntOperand] with GotoInterface {
+  def realizeLabel = CallFuncInt(result, label.toRealizedLabel)
+}
+
+case class CallFuncFloat(result: FloatOperand, label: Label) extends Operation[FloatOperand] with GotoInterface {
+  def realizeLabel = CallFuncFloat(result, label.toRealizedLabel)
+}
+
+case class CallFuncBool(result: BoolOperand, label: Label) extends Operation[BoolOperand] with GotoInterface {
+  def realizeLabel = CallFuncBool(result, label.toRealizedLabel)
+}
+
+case class CallFuncReference(result: ReferenceOperand, label: Label) extends Operation[ReferenceOperand] with GotoInterface {
+  def realizeLabel = CallFuncReference(result, label.toRealizedLabel)
+}
+
+case class CallFunc(label: Label) extends Instruction with GotoInterface {
+  def realizeLabel = CallFunc(label.toRealizedLabel)
+}
 
 case class ReturnInt(value: IntOperand) extends Instruction
 case class ReturnFloat(value: FloatOperand) extends Instruction

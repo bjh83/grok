@@ -1,12 +1,11 @@
 package com.grok
 
 import java.util
-import java.util.ListIterator
-import java.util.AbstractSequentialList
-
-import scala.collection.JavaConverters._
+import java.util.{AbstractSequentialList, ListIterator}
 
 import com.grok.CodeBlock.CodeBlockNode
+
+import scala.collection.mutable
 
 /**
  * Created by brendan.
@@ -54,7 +53,9 @@ class CodeBlock extends AbstractSequentialList[Instruction] {
     }
   }
 
-  case class LateBindingLabel(node: CodeBlockNode)(modifier: CodeBlockNode => CodeBlockNode) extends Label
+  case class LateBindingLabel(node: CodeBlockNode)(modifier: CodeBlockNode => CodeBlockNode) extends Label {
+    def toRealizedLabel = RealizedLabel(modifier(node).index)
+  }
 
   private val headNode: CodeBlockNode = CodeBlockNode(null, null, null)
   private val tailNode: CodeBlockNode = CodeBlockNode(null, null, null)
@@ -124,19 +125,46 @@ class CodeBlock extends AbstractSequentialList[Instruction] {
   }
 
   override def toString: String = {
-    this.asScala.map(_.toString).foldLeft("")((left, right) => left + "\n" + right)
-//    var node = headNode.next
-//    var string = ""
-//    while (node.next != null) {
-//      string += node.instruction
-//      node = node.next
-//    }
-//    string
+    val labelSet = mutable.Set[Int]()
+    val list = toList
+    list.foreach {
+      case goto: GotoInterface => labelSet.add(goto.label.toRealizedLabel.index)
+      case _ =>
+    }
+    list.zipWithIndex.map {
+      case (instr, index) => if (labelSet.contains(index)) {
+        "L%03d: ".format(index) + instr
+      } else {
+        "      " + instr
+      }
+    }.foldLeft("")((left, right) => left + "\n" + right)
+  }
+
+  def toList: scala.List[Instruction] = {
+    val list = mutable.MutableList[Instruction]()
+    val iter = listIterator()
+    while (iter.hasNext) {
+      list += iter.next()
+    }
+
+    list.map {
+      case goto: GotoInterface => goto.realizeLabel
+      case nonGoto => nonGoto
+    }.toList
   }
 }
 
 object CodeBlock {
-  class CodeBlockNode(var prev: CodeBlockNode, var next: CodeBlockNode, var instruction: Instruction)
+  class CodeBlockNode(var prev: CodeBlockNode, var next: CodeBlockNode, var instruction: Instruction) {
+    def index: Int = {
+      if (prev == null) {
+        // We are the headNode.
+        -1
+      } else {
+        prev.index + 1
+      }
+    }
+  }
 
   object CodeBlockNode {
     def apply(prev: CodeBlockNode, next: CodeBlockNode, instruction: Instruction): CodeBlockNode =
