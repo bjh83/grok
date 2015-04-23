@@ -38,6 +38,7 @@ class CodeGenerator {
       case IntegralType => newTempInt()
       case FloatingPointType => newTempFloat()
       case BoolType => newTempBool()
+      case UnitType => UnitOperand
       case _ => newTempReference()
     }
   }
@@ -139,7 +140,7 @@ class CodeGenerator {
       case operand: FloatOperand => paramBlock.append(ReturnFloat(operand))
       case operand: BoolOperand => paramBlock.append(ReturnBool(operand))
       case operand: ReferenceOperand => paramBlock.append(ReturnReference(operand))
-      case _ => paramBlock.append(Return)
+      case UnitOperand => paramBlock.append(Return)
     }
     functionLabelMap(functionDefinition) = paramBlock.blockStart
     paramBlock

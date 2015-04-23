@@ -32,6 +32,7 @@ case class BoolRealOperand(name: String) extends BoolOperand with RealOperand
 case class BoolConstOperand(value: Boolean) extends BoolOperand with ConstOperand[Boolean]
 case class ReferenceTempOperand(id: Int) extends ReferenceOperand with TempOperand
 case class ReferenceRealOperand(name: String) extends ReferenceOperand with RealOperand
+case object UnitOperand extends Operand
 
 sealed abstract class ThreeAddressCodeElement
 

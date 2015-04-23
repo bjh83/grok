@@ -37,6 +37,7 @@ object Main {
   val parseCompilerType: PartialFunction[String, CompilerType] = {
     case "interpreter" => INTERPRETER
     case "default" => DEFAULT_COMPILER
+    case "vm_compiler" => VM_COMPILER
   }
 }
 
