@@ -175,7 +175,7 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
     val signature = definition.`type`
     localAssignLambdaType(functionCall.parameters, signature.asInstanceOf[FunctionType])
     functionCall.functionDefinition = definition.asInstanceOf[FunctionSymbolDefinition].symbol
-    signature
+    signature.asInstanceOf[FunctionType].returnType
   }
 
   override protected def internalVisitFunctionCall(functionCall: FunctionCall): Type = {

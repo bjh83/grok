@@ -38,9 +38,9 @@ class DefaultCompiler extends Compiler {
 
   private def compileSource(file: File): Unit = {
     val ast = compileToAST(new ANTLRInputStream(new FileInputStream(file)))
-    val symbolTable = buildSymbolTable(ast)
+    val (symbolTable, builtInFunctions) = buildSymbolTable(ast)
     typeCheck(ast, symbolTable)
-    val code = generateIntermediateCode(ast)
+    val code = generateIntermediateCode(ast ++ builtInFunctions)
     println(code)
   }
 
@@ -51,7 +51,7 @@ class DefaultCompiler extends Compiler {
     buildAST(parser.compilationUnit())
   }
 
-  private def buildSymbolTable(ast: List[TopLevelStatement]): InitialDefinitionTable = {
+  private def buildSymbolTable(ast: List[TopLevelStatement]): (InitialDefinitionTable, List[FunctionDefinition]) = {
     (new SemanticAnalyzer).visitAST(ast)
   }
 

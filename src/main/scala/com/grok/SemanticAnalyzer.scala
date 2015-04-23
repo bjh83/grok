@@ -1,48 +1,57 @@
 package com.grok
 
+import scala.collection.mutable
+
 /**
  * Created by brendan.
  */
 class SemanticAnalyzer extends ASTVisitor[Unit, InitialDefinitionTable] {
   var definitionTable: InitialDefinitionTable = _
+  var builtInFunctions = mutable.MutableList[FunctionDefinition]()
 
-  def visitAST(ast: List[TopLevelStatement]): InitialDefinitionTable = {
+  def visitAST(ast: List[TopLevelStatement]): (InitialDefinitionTable, List[FunctionDefinition]) = {
     definitionTable = new InitialDefinitionTable
-    definitionTable.addSymbol(FunctionSymbolDefinition(FunctionDefinition("println", List(), List(Parameter("value", IntegralType)), UnitType, PrintExpression(Variable("value")))))
+    addPrintFunctions()
     ast.foreach(visitTopLevelStatement)
-    definitionTable
+    (definitionTable, builtInFunctions.toList)
   }
 
   private def addPrintFunctions(): Unit = {
     val intVariable = Variable("value")
     intVariable.`type` = IntegralType
-    definitionTable.addSymbol(FunctionSymbolDefinition(FunctionDefinition(
+    val printInt = FunctionDefinition(
       "println",
       List(),
       List(Parameter("value", IntegralType)),
       UnitType,
       PrintExpression(intVariable)
-    )))
+    )
+    definitionTable.addSymbol(FunctionSymbolDefinition(printInt))
+    builtInFunctions += printInt
 
     val floatVariable = Variable("value")
     floatVariable.`type` = FloatingPointType
-    definitionTable.addSymbol(FunctionSymbolDefinition(FunctionDefinition(
+    val printFloat = FunctionDefinition(
       "println",
       List(),
       List(Parameter("value", FloatingPointType)),
       UnitType,
       PrintExpression(floatVariable)
-    )))
+    )
+    definitionTable.addSymbol(FunctionSymbolDefinition(printFloat))
+    builtInFunctions += printFloat
 
     val boolVariable = Variable("value")
     boolVariable.`type` = BoolType
-    definitionTable.addSymbol(FunctionSymbolDefinition(FunctionDefinition(
+    val printBool = FunctionDefinition(
       "println",
       List(),
       List(Parameter("value", BoolType)),
       UnitType,
       PrintExpression(boolVariable)
-    )))
+    )
+    definitionTable.addSymbol(FunctionSymbolDefinition(printBool))
+    builtInFunctions += printBool
   }
 
   override protected def internalVisitFunctionDefinition(functionDefinition: FunctionDefinition): Unit = {
@@ -69,12 +78,15 @@ class SemanticAnalyzer extends ASTVisitor[Unit, InitialDefinitionTable] {
       variable.`type` = param.paramType
       variable
     }
-    definitionTable.addSymbol(FunctionSymbolDefinition(FunctionDefinition(
+    val constructor = FunctionDefinition(
       name,
       typeParams,
       params,
       returnType,
-      StructConstructor(structDefinition, paramsAsVariables))))
+      StructConstructor(structDefinition, paramsAsVariables)
+    )
+    definitionTable.addSymbol(FunctionSymbolDefinition(constructor))
+    builtInFunctions += constructor
   }
 
   protected def visitUnionDefinition(unionDefinition: UnionDefinition): Unit = {
@@ -89,13 +101,15 @@ class SemanticAnalyzer extends ASTVisitor[Unit, InitialDefinitionTable] {
       (param, variable)
     }
     paramsToVariables.foreach { case (param, variable) =>
-      definitionTable.addSymbol(FunctionSymbolDefinition(FunctionDefinition(
+      val constructor = FunctionDefinition(
         name,
         typeParams,
         List(param),
         returnType,
         UnionConstructor(unionDefinition, variable)
-      )))
+      )
+      definitionTable.addSymbol(FunctionSymbolDefinition(constructor))
+      builtInFunctions += constructor
     }
   }
 
