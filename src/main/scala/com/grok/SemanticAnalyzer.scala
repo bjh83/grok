@@ -118,17 +118,11 @@ class SemanticAnalyzer extends ASTVisitor[Unit, InitialDefinitionTable] {
 
   protected def visitCase(caseExpression: Case): Unit = ()
 
-  protected def visitFunctionCall(functionCall: FunctionCall): Unit = {
-    // TODO(Brendan): Even though this works in practice, we should provide a simple key constructor for function calls
-    // when type information does not yet exist.
-    definitionTable.containsSymbolFail(VariableKey(functionCall.identifier))
-  }
+  // Cannot assert existence of a definition which may not yet have been scanned.
+  protected def visitFunctionCall(functionCall: FunctionCall): Unit = ()
 
-  protected def visitMethodCall(methodCall: MethodCall): Unit = {
-    // TODO(Brendan): Even though this works in practice, we should provide a simple key constructor for function calls
-    // when type information does not yet exist.
-    definitionTable.containsSymbolFail(VariableKey(methodCall.identifier))
-  }
+  // Cannot assert existence of a definition which may not yet have been scanned.
+  protected def visitMethodCall(methodCall: MethodCall): Unit = ()
 
   protected def visitStructAccess(structAccess: StructAccess): Unit = {
     definitionTable.containsSymbolFail(VariableKey(structAccess.identifier))

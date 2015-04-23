@@ -169,10 +169,12 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
     }
 
     val paramTypes = functionCall.parameters.map(internalVisitExpression)
-    val definition = definitionTable.lookupSymbol(FunctionKey(functionCall.identifier, paramTypes, createResolver(functionCall.parameters)))
+    val key = FunctionKey(functionCall.identifier, paramTypes)
+    key.resolver = createResolver(functionCall.parameters)
+    val definition = definitionTable.lookupSymbol(key)
     val signature = definition.`type`
     localAssignLambdaType(functionCall.parameters, signature.asInstanceOf[FunctionType])
-    functionCall.functionDefinition = definition.asInstanceOf[FunctionDefinition]
+    functionCall.functionDefinition = definition.asInstanceOf[FunctionSymbolDefinition].symbol
     signature
   }
 
@@ -187,7 +189,7 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
         val lambdas = typesToExpression.filter {
           case (_, expr: Lambda) => true
           case _ => false
-        }.asInstanceOf[Set[(FunctionType, Lambda)]]
+        }.toSet.asInstanceOf[Set[(FunctionType, Lambda)]]
         lambdas.forall { case (signature, lambda) => canResolveLambdaWithSignature(lambda, signature) }
       }
     }
@@ -257,10 +259,11 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
 
   protected def visitBooleanComparison(booleanComparison: BooleanComparison): Type = {
     val BooleanComparison(left, _, right) = booleanComparison
-    if (typeTable.derives(internalVisitArithmeticExpression(left), FloatingPointType)) {
+    typeTable.derivesOrFail(internalVisitArithmeticExpression(left), FloatingPointType)
+    if (!typeTable.derives(internalVisitArithmeticExpression(left), FloatingPointType)) {
       sys.error(left + ", does not resolve to arithmetic expression.")
     }
-    if (typeTable.derives(internalVisitArithmeticExpression(right), FloatingPointType)) {
+    if (!typeTable.derives(internalVisitArithmeticExpression(right), FloatingPointType)) {
       sys.error(right + ", does not resolve to arithmetic expression.")
     }
     BoolType

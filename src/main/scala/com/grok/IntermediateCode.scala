@@ -76,6 +76,7 @@ case class AssignReference(result: ReferenceOperand, value: ReferenceOperand) ex
 
 // Branches.
 abstract class Label extends ThreeAddressCodeElement
+case class LabelFuture(future: () => Label) extends Label
 case class Goto(label: Label) extends Instruction
 case class ConditionalGoto(condition: BoolOperand, label: Label) extends Instruction
 case class ConditionalGotoNot(condition: BoolOperand, label: Label) extends Instruction

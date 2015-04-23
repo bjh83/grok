@@ -255,7 +255,7 @@ class CodeGenerator {
       case operand: ReferenceOperand => block.append(PushReference(operand))
     }
 
-    val functionLabel = functionLabelMap(functionCall.functionDefinition)
+    val functionLabel = LabelFuture(() => functionLabelMap(functionCall.functionDefinition))
     returnOperand match {
       case operand: IntOperand => block.append(CallFuncInt(operand, functionLabel))
       case operand: FloatOperand => block.append(CallFuncFloat(operand, functionLabel))

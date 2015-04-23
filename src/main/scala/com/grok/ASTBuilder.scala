@@ -337,6 +337,42 @@ class LambdaParameterVisitor extends GrokBaseVisitor[ParameterOptionalType] {
 
 class TypeVisitor extends GrokBaseVisitor[Type] {
   override def visitType(ctx: TypeContext): Type = {
+    visitTypeImpl(ctx) match {
+      case List() => sys.error("No type listed.")
+      case List(nonFunctionType) => nonFunctionType
+      case functionTypes => FunctionType(functionTypes.init, functionTypes.last)
+    }
+  }
+
+  def visitTypeImpl(ctx: TypeContext): List[Type] = {
+    val identifier = ctx.Identifier().getText
+    val typeParams = nullToOption(ctx.typeParameters()).map(typeParametersVisit).toList.flatten
+    val leftType = assembleInnerType(identifier, typeParams)
+    val rightTypes = nullToOption(ctx.`type`()).map(visitTypeImpl).toList.flatten
+    leftType +: rightTypes
+  }
+
+  def assembleInnerType(identifier: String, typeParameters: List[Type]): Type = {
+    (identifier, typeParameters) match {
+      case ("Int", Nil) => IntegralType
+      case ("Int", _) => doesNotTakeParametersError("Int")
+      case ("Float", Nil) => FloatingPointType
+      case ("Float", _) => doesNotTakeParametersError("Float")
+      case ("Bool", Nil) => BoolType
+      case ("Bool", _) => doesNotTakeParametersError("Bool")
+      case ("Unit", Nil) => UnitType
+      case ("Unit", _) => doesNotTakeParametersError("Unit")
+      case (simple, params) => SimpleType(simple, params)
+    }
+  }
+
+  def doesNotTakeParametersError(name: String): Nothing = {
+    sys.error(name + " does not take type parameters.")
+  }
+}
+
+class OldTypeVisitor extends GrokBaseVisitor[Type] {
+  override def visitType(ctx: TypeContext): Type = {
     val identifier = ctx.Identifier().getText
     val typeParams = nullToOption(ctx.typeParameters()).map(typeParametersVisit).toList.flatten
     val right = nullToOption(ctx.`type`()).map(visit)

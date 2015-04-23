@@ -46,9 +46,8 @@ case class VariableSymbolInstance(symbol: String) extends SymbolInstance[String,
 }
 
 
-case class FunctionKey(name: String,
-                       parameters: List[Type],
-                       resolver: Set[FunctionType] => Set[FunctionType] = FunctionKey.defaultResolver) extends Key {
+case class FunctionKey(name: String, parameters: List[Type]) extends Key {
+  var resolver: Set[FunctionType] => Set[FunctionType] = FunctionKey.defaultResolver
   def toType(returnType: Type): Type = FunctionType(parameters, returnType)
 }
 
@@ -61,7 +60,11 @@ case class FunctionSymbolDefinition(symbol: FunctionDefinition)
 
   def key = FunctionKey(symbol.identifier, symbol.parameters.map(_.paramType))
 
-  def buildSymbolGroup() = new InitialFunctionGroup(symbol.identifier, symbol.returnType)
+  def buildSymbolGroup() = {
+    val group = new InitialFunctionGroup(symbol.identifier, symbol.returnType)
+    group.add(this)
+    group
+  }
 
   def `type` = key.toType(symbol.returnType)
 }

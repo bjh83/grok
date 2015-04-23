@@ -42,20 +42,22 @@ class VariableGroup(private var variableDeclaration: VariableDeclaration)
 class InitialFunctionGroup(protected val name: String, protected val returnType: Type)
   extends SymbolGroup[FunctionDefinition, FunctionKey, FunctionSymbolDefinition] {
 
-  protected val map = mutable.Map[FunctionKey, FunctionSymbolDefinition]()
+  protected var map = mutable.Map[FunctionKey, FunctionSymbolDefinition]()
 
-  override def add(definition: SymbolDefinition[_, _]): Unit = definition match {
-    case symbol: FunctionSymbolDefinition =>
-      if (symbol.symbol.returnType == returnType) {
-        if (!map.contains(symbol.key)) {
-          map(symbol.key) = symbol
+  override def add(definition: SymbolDefinition[_, _]): Unit = {
+    definition match {
+      case symbol: FunctionSymbolDefinition =>
+        if (symbol.symbol.returnType == returnType) {
+          if (!map.contains(symbol.key)) {
+            map(symbol.key) = symbol
+          } else {
+            sys.error("Function with signature, " + symbol.key + ", already declared.")
+          }
         } else {
-          sys.error("Function with signature, " + symbol.key + ", already declared.")
+          sys.error("Multiple functions of name, " + name + ", with different return types.")
         }
-      } else {
-        sys.error("Multiple functions of name, " + name + ", with different return types.")
-      }
-    case _ => sys.error("Incorrect symbol type.")
+      case _ => sys.error("Incorrect symbol type.")
+    }
   }
 
   override def get(key: Key): FunctionSymbolDefinition = {
@@ -76,7 +78,11 @@ class InitialFunctionGroup(protected val name: String, protected val returnType:
     case _ => sys.error("Incorrect symbol type.")
   }
 
-  override def buildWithTable(typeTable: TypeTable) = new FinalFunctionGroup(name, returnType, typeTable)
+  override def buildWithTable(typeTable: TypeTable) = {
+    val functionGroup = new FinalFunctionGroup(name, returnType, typeTable)
+    functionGroup.map = map
+    functionGroup
+  }
 }
 
 class FinalFunctionGroup(name: String,
@@ -94,7 +100,8 @@ class FinalFunctionGroup(name: String,
       typeTable.derives(outsideKey.toType(returnType), key.toType(returnType))
     }.map(key => key.toType(returnType).asInstanceOf[FunctionType]).toSet
     outsideKey.resolver(candidates).toList match {
-      case List() => sys.error("No function named \"" + name + "\" that accepts args: " + outsideKey.parameters)
+      case List() => sys.error("No function named \"" + name + "\" that accepts args: "
+        + outsideKey.parameters + ". Functions in group: " + map)
       case List(functionType) => map(FunctionKey(name, functionType.parameters))
       case _ => sys.error("Cannot resolve function named \"" + name + "\" due to ambiguous types.")
     }
