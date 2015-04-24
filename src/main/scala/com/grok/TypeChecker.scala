@@ -138,12 +138,14 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
 
   protected def visitMatchExpression(matchExpression: MatchExpression): Type = {
     val expressionType = internalVisitExpression(matchExpression.expression)
-    val unionMembers = definitionTable.lookupUnionDefinition(expressionType).members.toSet
-    val caseMembers = matchExpression.cases.map(_.parameter.paramType)
+    val unionDefinition = definitionTable.lookupUnionDefinition(expressionType)
+    val unionMembers = unionDefinition.members.toSet
+    val caseMembers = matchExpression.cases.map(_.parameter.paramType).toSet
     if (unionMembers != caseMembers) {
       sys.error("Match does not handle all possible cases.")
     }
     val caseReturnTypes = matchExpression.cases.map(internalVisitCase)
+    matchExpression.unionDef = unionDefinition
     typeTable.computeUpperBound(caseReturnTypes.toSet)
   }
 
@@ -152,6 +154,7 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
   }
 
   protected def visitCase(caseExpression: Case): Type = {
+    definitionTable.addSymbol(ParameterSymbolDefinition(caseExpression.parameter))
     internalVisitExpression(caseExpression.body)
   }
 

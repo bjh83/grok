@@ -20,7 +20,7 @@ class TypeTable(val table: Map[Type, Set[Type]]) {
   def computeUpperBound(types: Set[Type]): Type = {
     val allTypesDerivations: Set[Set[Type]] = types.map(allDerivations)
     val upperBoundCandidates: Set[Type] = allTypesDerivations.reduce((left: Set[Type], right: Set[Type]) => left.intersect(right))
-    (upperBoundCandidates - (TopType, UnitType)).toList match {
+    (upperBoundCandidates - TopType).toList match {
       case List(upperBound) => upperBound
       case List() => sys.error("No upper bound exists for types: " + types)
       case _ => sys.error("Multiple ambiguous upper bounds exist.")
@@ -29,7 +29,7 @@ class TypeTable(val table: Map[Type, Set[Type]]) {
 
   private def allDerivations(base: Type): Set[Type] = {
     val derivations = table(base) - base // Including the type itself will result in a cycle.
-    derivations ++ derivations.flatMap(allDerivations)
+    derivations ++ derivations.flatMap(allDerivations) + base // Must add type back in.
   }
 
   private def generalDerives(base: Type, derived: Type): Boolean = {

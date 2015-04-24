@@ -7,7 +7,6 @@ import TypeTableFactory._
  */
 class TypeTableFactory(val unions: Set[UnionDefinition],
                        val structs: Set[StructDefinition]) {
-
   // TopType and BottomType are not included since UnitType may not derive TopType otherwise a derivation cycle would
   // exist.
   val builtIn = Map[Type, Set[Type]](

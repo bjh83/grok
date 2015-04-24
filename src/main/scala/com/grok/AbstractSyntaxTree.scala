@@ -89,7 +89,9 @@ case class IfExpression(condition: BooleanExpression,
 
 case class WhileExpression(condition: BooleanExpression, body: Block) extends Expression
 
-case class MatchExpression(expression: Expression, cases: List[Case]) extends Expression
+case class MatchExpression(expression: Expression, cases: List[Case]) extends Expression {
+  var unionDef: UnionDefinition = _
+}
 
 case class FunctionCall(identifier: String, parameters: List[Expression]) extends Expression {
   var functionDefinition: FunctionDefinition = _

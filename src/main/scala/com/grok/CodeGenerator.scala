@@ -93,7 +93,7 @@ class CodeGenerator {
       case expr: MethodCall => visitMethodCall(expr, operand)
       case expr: StructAccess => visitStructAccess(expr, operand)
       case This => visitThis(operand)
-      case expr: Case => visitCase(expr, operand)
+      case expr: Case => visitCase(expr, null, -1, operand)
       case expr: StructConstructor => visitStructConstructor(expr, operand.asInstanceOf[ReferenceOperand])
       case expr: UnionConstructor => visitUnionConstructor(expr, operand.asInstanceOf[ReferenceOperand])
       case expr: PrintExpression => visitPrintExpression(expr)
@@ -240,11 +240,38 @@ class CodeGenerator {
   }
 
   protected def visitMatchExpression(matchExpression: MatchExpression, operand: Operand): CodeBlock = {
-    sys.error("Match Expression not yet supported.")
+    val MatchExpression(union, cases) = matchExpression
+    val reference = newTempReference()
+    val selectorOperand = newTempInt()
+    val block = visitExpression(union, reference)
+    block.append(CompoundAccessInt(selectorOperand, reference, 0))
+
+    val caseMap = cases.map(kase => (kase.parameter.paramType, kase)).toMap
+    val members = matchExpression.unionDef.members
+    val caseBlocks = members.map(caseMap).zipWithIndex
+      .map { case (kase, selector) => visitCase(kase, reference, selector, operand) }
+    val jumpTable = caseBlocks.zipWithIndex.map { case (codeBlock, selector) =>
+      val condition = newTempBool()
+      CodeBlock(
+        ComparisonInt(condition, selectorOperand, EQUALS, IntConstOperand(selector)),
+        ConditionalGoto(condition, codeBlock.blockStart)
+      )
+    }.reduce((left, right) => left.append(right))
+    val finishedCaseBlock = (caseBlocks.init.map(_.append(Goto(caseBlocks.last.blockEnd))) :+ caseBlocks.last)
+      .reduce((left, right) => left.append(right))
+    CodeBlock(block, jumpTable, finishedCaseBlock)
   }
 
-  protected def visitCase(caseExpression: Case, operand: Operand): CodeBlock = {
-    sys.error("Match Expression not yet supported.")
+  protected def visitCase(caseExpression: Case, reference: ReferenceOperand, selector: Int, operand: Operand): CodeBlock = {
+    val Case(param, body) = caseExpression
+    val caseOperand = newRealOperand(param.identifier, param.paramType)
+    val block = caseOperand match {
+      case operand: IntOperand => CodeBlock(CompoundAccessInt(operand, reference, selector + 1))
+      case operand: FloatOperand => CodeBlock(CompoundAccessFloat(operand, reference, selector + 1))
+      case operand: BoolOperand => CodeBlock(CompoundAccessBool(operand, reference, selector + 1))
+      case operand: ReferenceOperand => CodeBlock(CompoundAccessReference(operand, reference, selector + 1))
+    }
+    block.append(visitExpression(body, operand))
   }
 
   protected def visitFunctionCall(functionCall: FunctionCall, returnOperand: Operand): CodeBlock = {
@@ -312,10 +339,10 @@ class CodeGenerator {
     val block = CodeBlock(HeapAllocateUnion(returnOperand, selector, operands))
     val paramOperand = newRealOperand(unionConstructor.param.identifier, unionConstructor.param.`type`)
     paramOperand match {
-      case operand: IntOperand => block.append(CompoundAssignInt(operand, returnOperand, selector))
-      case operand: FloatOperand => block.append(CompoundAssignFloat(operand, returnOperand, selector))
-      case operand: BoolOperand => block.append(CompoundAssignBool(operand, returnOperand, selector))
-      case operand: ReferenceOperand => block.append(CompoundAssignReference(operand, returnOperand, selector))
+      case operand: IntOperand => block.append(CompoundAssignInt(operand, returnOperand, selector + 1))
+      case operand: FloatOperand => block.append(CompoundAssignFloat(operand, returnOperand, selector + 1))
+      case operand: BoolOperand => block.append(CompoundAssignBool(operand, returnOperand, selector + 1))
+      case operand: ReferenceOperand => block.append(CompoundAssignReference(operand, returnOperand, selector + 1))
     }
   }
 
