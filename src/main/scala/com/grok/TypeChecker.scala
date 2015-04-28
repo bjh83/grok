@@ -51,6 +51,9 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
   protected def visitVariableAssignment(variableAssignment: VariableAssignment): Type = {
     val variableDefinition = definitionTable.lookupSymbol(VariableKey(variableAssignment.identifier))
     val actualType = internalVisitExpression(variableAssignment.value)
+    if (variableDefinition.symbol.asInstanceOf[VariableDeclaration].mutability == IMMUTABLE) {
+      sys.error("Cannot reassign immutable variable: " + variableAssignment)
+    }
     typeTable.derivesOrFail(actualType, variableDefinition.`type`)
     variableAssignment.varType = variableDefinition.`type`
     UnitType

@@ -97,13 +97,18 @@ class FinalFunctionGroup(name: String,
   protected def internalGet(outsideKey: FunctionKey): FunctionSymbolDefinition = {
     val keyDefinitionPairs = map.keySet
     val candidates = keyDefinitionPairs.filter { key =>
-      typeTable.derives(outsideKey.toType(returnType), key.toType(returnType))
+      typeTable.derives(key.toType(returnType), outsideKey.toType(returnType)) &&
+      key.parameters.zip(outsideKey.parameters).forall { case (in, out) => typeTable.derives(out, in) }
     }.map(key => key.toType(returnType).asInstanceOf[FunctionType]).toSet
+    val exactResult = candidates.filter(candidate => candidate.parameters == outsideKey.parameters)
+    if (exactResult.nonEmpty) {
+      return map(FunctionKey(name, exactResult.head.parameters))
+    }
     outsideKey.resolver(candidates).toList match {
       case List() => sys.error("No function named \"" + name + "\" that accepts args: "
         + outsideKey.parameters + ". Functions in group: " + map)
       case List(functionType) => map(FunctionKey(name, functionType.parameters))
-      case _ => sys.error("Cannot resolve function named \"" + name + "\" due to ambiguous types.")
+      case results => sys.error("Cannot resolve function named \"" + name + "\" due to ambiguous types: " + results)
     }
   }
 

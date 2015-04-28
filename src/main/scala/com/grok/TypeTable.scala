@@ -23,13 +23,24 @@ class TypeTable(val table: Map[Type, Set[Type]]) {
     (upperBoundCandidates - TopType).toList match {
       case List(upperBound) => upperBound
       case List() => sys.error("No upper bound exists for types: " + types)
-      case _ => sys.error("Multiple ambiguous upper bounds exist.")
+      case candidates => least(candidates.toSet)
     }
   }
 
-  private def allDerivations(base: Type): Set[Type] = {
-    val derivations = table(base) - base // Including the type itself will result in a cycle.
-    derivations ++ derivations.flatMap(allDerivations) + base // Must add type back in.
+  private def least(types: Set[Type]): Type = {
+    types.filter(base => types.forall(derived => derives(base, derived))).toList match {
+      case List(result) => result
+      case results => sys.error("Least does not work, results = " + results)
+    }
+  }
+
+  private def allDerivations(`type`: Type): Set[Type] = {
+    `type` match {
+      case TopType => Set()
+      case base =>
+        val derivations = table(base) - base // Including the type itself will result in a cycle.
+        derivations ++ derivations.flatMap(allDerivations) + base // Must add type back in.
+    }
   }
 
   private def generalDerives(base: Type, derived: Type): Boolean = {
