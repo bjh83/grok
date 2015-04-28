@@ -343,7 +343,6 @@ class CodeGenerator {
   protected def visitStructAccess(structAccess: StructAccess, returnOperand: Operand): CodeBlock = {
     val structOperand = newTempReference()
     val structBlock = visitExpression(structAccess.receiver, structOperand)
-    println(structAccess.structDef)
     val memberOffset = structAccess.structDef.fields.map(_.identifier).indexOf(structAccess.identifier)
     returnOperand match {
       case operand: IntOperand => structBlock.append(CompoundAccessInt(operand, structOperand, memberOffset))
