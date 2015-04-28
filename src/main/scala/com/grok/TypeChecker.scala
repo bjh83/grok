@@ -35,8 +35,14 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
 
   protected def visitVariableDeclaration(variableDeclaration: VariableDeclaration): Type = {
     val actualType = internalVisitExpression(variableDeclaration.value)
+    if (actualType == UnitType) {
+      sys.error("Variable may not take on type Unit")
+    }
     variableDeclaration.varType match {
       case Some(expectedType) =>
+        if (expectedType == UnitType) {
+          sys.error("Variable may not take on type Unit")
+        }
         typeTable.derivesOrFail(actualType, expectedType)
         definitionTable.addSymbol(NormalVariableSymbolDefinition(variableDeclaration))
       case None =>
@@ -51,7 +57,11 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
   protected def visitVariableAssignment(variableAssignment: VariableAssignment): Type = {
     val variableDefinition = definitionTable.lookupSymbol(VariableKey(variableAssignment.identifier))
     val actualType = internalVisitExpression(variableAssignment.value)
-    if (variableDefinition.symbol.asInstanceOf[VariableDeclaration].mutability == IMMUTABLE) {
+    if (actualType == UnitType) {
+      sys.error("Variable may not take on type Unit")
+    }
+    val declaration = variableDefinition.symbol.asInstanceOf[VariableDeclaration]
+    if (declaration.mutability == IMMUTABLE) {
       sys.error("Cannot reassign immutable variable: " + variableAssignment)
     }
     typeTable.derivesOrFail(actualType, variableDefinition.`type`)
@@ -63,6 +73,9 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
     val variableDefinition = definitionTable.lookupSymbol(VariableKey(structAssignment.identifier))
     val structDefinition = definitionTable.lookupStructDefinition(variableDefinition.`type`)
     val actualType = internalVisitExpression(structAssignment.value)
+    if (actualType == UnitType) {
+      sys.error("Variable may not take on type Unit")
+    }
     structDefinition.fields.find(_.identifier == structAssignment.member) match {
       case Some(field) => typeTable.derives(actualType, field.fieldType)
       case None => sys.error("Field, " + structAssignment.member + ", does not exist.")

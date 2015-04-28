@@ -288,7 +288,7 @@ class CodeGenerator {
       val operand = newTemp(expr.`type`)
       (operand, visitExpression(expr, operand))
     }.unzip
-    val block = blocks.reduce((left, right) => left.append(right))
+    val block = blocks.foldLeft(CodeBlock())((left, right) => left.append(right))
 
     operands.foreach {
       case operand: IntOperand => block.append(PushInt(operand))

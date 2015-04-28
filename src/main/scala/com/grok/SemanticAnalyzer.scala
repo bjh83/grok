@@ -71,6 +71,9 @@ class SemanticAnalyzer extends ASTVisitor[Unit, InitialDefinitionTable] {
   protected def visitStructDefinition(structDefinition: StructDefinition): Unit = {
     definitionTable.addDefinition(structDefinition)
     val StructDefinition(name, typeParams, fields) = structDefinition
+    if (fields.exists(_.fieldType == UnitType)) {
+      sys.error("Field may not take on type Unit")
+    }
     val params = fields.map { case Field(fieldName, fieldType, _) => Parameter(fieldName, fieldType) }
     val returnType = TypeTableFactory.structToType(structDefinition)
     val paramsAsVariables = params.map { param =>
@@ -92,6 +95,9 @@ class SemanticAnalyzer extends ASTVisitor[Unit, InitialDefinitionTable] {
   protected def visitUnionDefinition(unionDefinition: UnionDefinition): Unit = {
     definitionTable.addDefinition(unionDefinition)
     val UnionDefinition(name, typeParams, members) = unionDefinition
+    if (members.contains(UnitType)) {
+      sys.error("Union may not contain Unit")
+    }
     // TODO: Write actual munging function.
     val params = members.map(member => Parameter("$" + member, member))
     val returnType = TypeTableFactory.unionToType(unionDefinition)

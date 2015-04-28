@@ -63,7 +63,7 @@ class TypeTable(val table: Map[Type, Set[Type]]) {
       // Derivation of parameters is reversed.
       derivedParams.zip(baseParams)
         .map { case (derived, base) => derives(derived, base) }
-        .reduce((left, right) => left && right) &&
+        .foldLeft(true)((left, right) => left && right) &&
         derives(baseReturn, derivedReturn)
     }
   }
