@@ -94,7 +94,7 @@ case class MatchExpression(expression: Expression, cases: List[Case]) extends Ex
 }
 
 case class FunctionCall(identifier: String, parameters: List[Expression]) extends Expression {
-  var functionDefinition: FunctionDefinition = _
+  var functionDefinition: SymbolDefinition[_, Key] = _
 }
 
 case class MethodCall(receiver: Expression, identifier: String, parameters: List[Expression]) extends Expression

@@ -5,9 +5,9 @@ import scala.collection.mutable
 /**
  * Created by brendan.
  */
-class VirtualMachine(private val code: List[Instruction]) {
+class VirtualMachine(private val code: List[Instruction], private val functionTable: Map[ReferenceRealOperand, ReferenceOperandValue]) {
   private var programCounter = 0
-  private var returnOperand: Operand = _
+  private var returnOperand = mutable.Stack[Operand]()
   private val programCounterStack = mutable.Stack[Int]()
   private val stack = mutable.Stack[mutable.Map[Operand, OperandValue[_]]]()
   private val heap = mutable.MutableList[OperandValue[_]]()
@@ -16,8 +16,13 @@ class VirtualMachine(private val code: List[Instruction]) {
   private def evaluate[T](operand: Operand): T = {
     operand match {
       case op: ConstOperand[T] => op.value
-      case op =>
+      case op => if (stack.head.contains(op)) {
         stack.head(op).asInstanceOf[OperandValue[T]].value
+      } else if (op.isInstanceOf[ReferenceRealOperand] && functionTable.contains(op.asInstanceOf[ReferenceRealOperand])) {
+        functionTable(op.asInstanceOf[ReferenceRealOperand]).asInstanceOf[OperandValue[T]].value
+      } else {
+        sys.error(op + " is not in available")
+      }
     }
   }
 
@@ -45,20 +50,20 @@ class VirtualMachine(private val code: List[Instruction]) {
           programCounter += 1
         }
       case CompoundAssignInt(value, reference, offset) =>
-        val heapAddress = stack.head(reference).asInstanceOf[ReferenceOperandValue].value + offset
+        val heapAddress = evaluate[Int](reference) + offset
         heap(heapAddress) = IntOperandValue(evaluate(value))
         programCounter += 1
       case CompoundAssignFloat(value, reference, offset) =>
-        val heapAddress = stack.head(reference).asInstanceOf[ReferenceOperandValue].value + offset
+        val heapAddress = evaluate[Int](reference) + offset
         heap(heapAddress) = FloatOperandValue(evaluate(value))
         programCounter += 1
       case CompoundAssignBool(value, reference, offset) =>
-        val heapAddress = stack.head(reference).asInstanceOf[ReferenceOperandValue].value + offset
+        val heapAddress = evaluate[Int](reference) + offset
         heap(heapAddress) = BoolOperandValue(evaluate(value))
         programCounter += 1
       case CompoundAssignReference(value, reference, offset) =>
-        val heapAddress = stack.head(reference).asInstanceOf[ReferenceOperandValue].value + offset
-        heap(heapAddress) = stack.head(value)
+        val heapAddress = evaluate[Int](reference) + offset
+        heap(heapAddress) = ReferenceOperandValue(evaluate(value))
         programCounter += 1
       case PushInt(value) =>
         paramStack += IntOperandValue(evaluate(value))
@@ -70,32 +75,35 @@ class VirtualMachine(private val code: List[Instruction]) {
         paramStack += BoolOperandValue(evaluate(value))
         programCounter += 1
       case PushReference(value) =>
-        paramStack += stack.head(value)
+        paramStack += ReferenceOperandValue(evaluate(value))
         programCounter += 1
       case Pop(size) =>
         paramStack.dropRight(size)
         programCounter += 1
       case CallFunc(label) => callFunc(label)
+      case PtrCallFunc(ptr) =>
+        val functionAddress = evaluate[Int](ptr)
+        callFunc(RealizedLabel(functionAddress))
       case ReturnInt(value) =>
         val result = IntOperandValue(evaluate(value))
         stack.pop()
         programCounter = programCounterStack.pop()
-        stack.head(returnOperand) = result
+        stack.head(returnOperand.pop()) = result
       case ReturnFloat(value) =>
         val result = FloatOperandValue(evaluate(value))
         stack.pop()
         programCounter = programCounterStack.pop()
-        stack.head(returnOperand) = result
+        stack.head(returnOperand.pop()) = result
       case ReturnBool(value) =>
         val result = BoolOperandValue(evaluate(value))
         stack.pop()
         programCounter = programCounterStack.pop()
-        stack.head(returnOperand) = result
+        stack.head(returnOperand.pop()) = result
       case ReturnReference(value) =>
-        val result = stack.head(value)
+        val result = ReferenceOperandValue(evaluate(value))
         stack.pop()
         programCounter = programCounterStack.pop()
-        stack.head(returnOperand) = result
+        stack.head(returnOperand.pop()) = result
       case Return =>
         stack.pop()
         programCounter = programCounterStack.pop()
@@ -177,22 +185,22 @@ class VirtualMachine(private val code: List[Instruction]) {
         })
         programCounter += 1
       case AssignReference(result, value) =>
-        stack.head(result) = stack.head(value)
+        stack.head(result) = ReferenceOperandValue(evaluate(value))
         programCounter += 1
       case CompoundAccessInt(result, reference, offset) =>
-        val heapAddress = stack.head(reference).asInstanceOf[ReferenceOperandValue].value + offset
+        val heapAddress = evaluate[Int](reference) + offset
         stack.head(result) = heap(heapAddress)
         programCounter += 1
       case CompoundAccessFloat(result, reference, offset) =>
-        val heapAddress = stack.head(reference).asInstanceOf[ReferenceOperandValue].value + offset
+        val heapAddress = evaluate[Int](reference) + offset
         stack.head(result) = heap(heapAddress)
         programCounter += 1
       case CompoundAccessBool(result, reference, offset) =>
-        val heapAddress = stack.head(reference).asInstanceOf[ReferenceOperandValue].value + offset
+        val heapAddress = evaluate[Int](reference) + offset
         stack.head(result) = heap(heapAddress)
         programCounter += 1
       case CompoundAccessReference(result, reference, offset) =>
-        val heapAddress = stack.head(reference).asInstanceOf[ReferenceOperandValue].value + offset
+        val heapAddress = evaluate[Int](reference) + offset
         stack.head(result) = heap(heapAddress)
         programCounter += 1
       case operation: HeapAllocateStruct =>
@@ -214,17 +222,33 @@ class VirtualMachine(private val code: List[Instruction]) {
         stack.head(result) = paramStack(paramStack.size - 1 - offset)
         programCounter += 1
       case CallFuncInt(result, label) =>
-        returnOperand = result
+        returnOperand.push(result)
         callFunc(label)
       case CallFuncFloat(result, label) =>
-        returnOperand = result
+        returnOperand.push(result)
         callFunc(label)
       case CallFuncBool(result, label) =>
-        returnOperand = result
+        returnOperand.push(result)
         callFunc(label)
       case CallFuncReference(result, label) =>
-        returnOperand = result
+        returnOperand.push(result)
         callFunc(label)
+      case PtrCallFuncInt(result, ptr) =>
+        returnOperand.push(result)
+        val functionAddress = evaluate[Int](ptr)
+        callFunc(RealizedLabel(functionAddress))
+      case PtrCallFuncFloat(result, ptr) =>
+        returnOperand.push(result)
+        val functionAddress = evaluate[Int](ptr)
+        callFunc(RealizedLabel(functionAddress))
+      case PtrCallFuncBool(result, ptr) =>
+        returnOperand.push(result)
+        val functionAddress = evaluate[Int](ptr)
+        callFunc(RealizedLabel(functionAddress))
+      case PtrCallFuncReference(result, ptr) =>
+        returnOperand.push(result)
+        val functionAddress = evaluate[Int](ptr)
+        callFunc(RealizedLabel(functionAddress))
     }
   }
 

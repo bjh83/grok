@@ -43,8 +43,8 @@ class DefaultCompiler extends Compiler {
     val ast = compileToAST(new ANTLRInputStream(new FileInputStream(file)))
     val (symbolTable, builtInFunctions) = buildSymbolTable(ast)
     typeCheck(ast, symbolTable)
-    val code = generateIntermediateCode(ast ++ builtInFunctions)
-    handleIntermediateCode(code)
+    val (code, functionTable) = generateIntermediateCode(ast ++ builtInFunctions)
+    handleIntermediateCode(code, functionTable)
   }
 
   protected def compileToAST(inputStream: ANTLRInputStream): List[TopLevelStatement] = {
@@ -65,15 +65,21 @@ class DefaultCompiler extends Compiler {
     (new TypeChecker).visitAST(ast, symbolTable.buildFinalDefinitionTable(), typeTable)
   }
 
-  protected def generateIntermediateCode(ast: List[TopLevelStatement]): CodeBlock = {
+  protected def generateIntermediateCode(ast: List[TopLevelStatement]): (CodeBlock, Map[String, Label]) = {
     (new CodeGenerator).visitAST(ast)
   }
 
-  protected def handleIntermediateCode(code: CodeBlock): Unit = println(code)
+  protected def handleIntermediateCode(code: CodeBlock, functionTable: Map[String, Label]): Unit = {
+    functionTable.foreach { case (name, label) => println(name + " = " + label.toRealizedLabel)}
+    println(code)
+  }
 }
 
 class VMCompiler extends DefaultCompiler {
-  override protected def handleIntermediateCode(code: CodeBlock): Unit = {
-    new VirtualMachine(code.toList).execute()
+  override protected def handleIntermediateCode(code: CodeBlock, functionTable: Map[String, Label]): Unit = {
+    val newFunctionTable = functionTable.map { case (name, label) =>
+      (ReferenceRealOperand(name), ReferenceOperandValue(label.toRealizedLabel.index))
+    }
+    new VirtualMachine(code.toList, newFunctionTable).execute()
   }
 }

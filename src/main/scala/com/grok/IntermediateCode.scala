@@ -159,6 +159,12 @@ case class CallFunc(label: Label) extends Instruction with GotoInterface {
   def realizeLabel = CallFunc(label.toRealizedLabel)
 }
 
+case class PtrCallFuncInt(result: IntOperand, ptr: ReferenceOperand) extends Operation[IntOperand]
+case class PtrCallFuncFloat(result: FloatOperand, ptr: ReferenceOperand) extends Operation[FloatOperand]
+case class PtrCallFuncBool(result: BoolOperand, ptr: ReferenceOperand) extends Operation[BoolOperand]
+case class PtrCallFuncReference(result: ReferenceOperand, ptr: ReferenceOperand) extends Operation[ReferenceOperand]
+case class PtrCallFunc(ptr: ReferenceOperand) extends Instruction
+
 case class ReturnInt(value: IntOperand) extends Instruction
 case class ReturnFloat(value: FloatOperand) extends Instruction
 case class ReturnBool(value: BoolOperand) extends Instruction

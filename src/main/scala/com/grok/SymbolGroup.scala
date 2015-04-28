@@ -20,7 +20,7 @@ abstract class SymbolGroup[+S, +K <: Key, +D <: SymbolDefinition[S, K]] {
   protected def internalUpdate(definition: SymbolDefinition[_, Key]): Unit
 }
 
-class VariableGroup(private var variableDeclaration: VariableDeclaration)
+class VariableGroup(var variableDeclaration: VariableDeclaration)
   extends SymbolGroup[VariableDeclaration, VariableKey, VariableSymbolDefinition] {
 
   override def add(symbol: SymbolDefinition[_, _]): Unit = {
@@ -42,7 +42,7 @@ class VariableGroup(private var variableDeclaration: VariableDeclaration)
 class InitialFunctionGroup(protected val name: String, protected val returnType: Type)
   extends SymbolGroup[FunctionDefinition, FunctionKey, FunctionSymbolDefinition] {
 
-  protected var map = mutable.Map[FunctionKey, FunctionSymbolDefinition]()
+  var map = mutable.Map[FunctionKey, FunctionSymbolDefinition]()
 
   override def add(definition: SymbolDefinition[_, _]): Unit = {
     definition match {

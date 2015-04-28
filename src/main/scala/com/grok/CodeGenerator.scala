@@ -52,12 +52,14 @@ class CodeGenerator {
     }
   }
 
-  def visitAST(ast: List[TopLevelStatement]): CodeBlock = {
+  def visitAST(ast: List[TopLevelStatement]): (CodeBlock, Map[String, Label]) = {
     val block = ast
       .map(visitTopLevelStatement)
       .reduce((left, right) => left.append(right))
     val main = functionLabelMap.keys.find(_.identifier == "main").getOrElse(sys.error("Must provide main method!"))
-    CodeBlock(CallFunc(functionLabelMap(main))).append(block)
+    (CodeBlock(CallFunc(functionLabelMap(main))).append(block), functionLabelMap.map {
+      case (definition, label) => (definition.identifier, label)
+    }.toMap)
   }
 
   protected def visitArithmeticExpression[T <: ArithmeticOperand](arithmeticExpression: ArithmeticExpression, operand: T): CodeBlock = {
@@ -192,7 +194,7 @@ class CodeGenerator {
   }
 
   protected def visitBlock(block: Block, operand: Operand): CodeBlock = {
-    val statementsBlock = block.statements.map(visitStatement).reduce((left, right) => left.append(right))
+    val statementsBlock = block.statements.map(visitStatement).foldLeft(CodeBlock())((left, right) => left.append(right))
     block.expression.foreach(expr => statementsBlock.append(visitExpression(expr, operand)))
     statementsBlock
   }
@@ -275,6 +277,13 @@ class CodeGenerator {
   }
 
   protected def visitFunctionCall(functionCall: FunctionCall, returnOperand: Operand): CodeBlock = {
+    functionCall.functionDefinition match {
+      case real: FunctionSymbolDefinition => visitFunctionCallReal(functionCall, real.symbol, returnOperand)
+      case ptr: VariableSymbolDefinition => visitFunctionCallPtr(functionCall, ptr.symbol, returnOperand)
+    }
+  }
+
+  protected def visitFunctionCallReal(functionCall: FunctionCall, functionDefinition: FunctionDefinition, returnOperand: Operand): CodeBlock = {
     val (operands, blocks) = functionCall.parameters.map { expr =>
       val operand = newTemp(expr.`type`)
       (operand, visitExpression(expr, operand))
@@ -288,13 +297,40 @@ class CodeGenerator {
       case operand: ReferenceOperand => block.append(PushReference(operand))
     }
 
-    val functionLabel = LabelFuture(() => functionLabelMap(functionCall.functionDefinition))
+    val functionLabel = LabelFuture(() => functionLabelMap(functionDefinition))
     returnOperand match {
       case operand: IntOperand => block.append(CallFuncInt(operand, functionLabel))
       case operand: FloatOperand => block.append(CallFuncFloat(operand, functionLabel))
       case operand: BoolOperand => block.append(CallFuncBool(operand, functionLabel))
       case operand: ReferenceOperand => block.append(CallFuncReference(operand, functionLabel))
       case _ => block.append(CallFunc(functionLabel))
+    }
+    Pop(operands.size)
+    block
+  }
+
+  protected def visitFunctionCallPtr(functionCall: FunctionCall, variableDeclaration: VariableDeclaration, returnOperand: Operand): CodeBlock = {
+    val functionPtr = newRealOperand(variableDeclaration.identifier, variableDeclaration.varType.get).asInstanceOf[ReferenceOperand]
+
+    val (operands, blocks) = functionCall.parameters.map { expr =>
+      val operand = newTemp(expr.`type`)
+      (operand, visitExpression(expr, operand))
+    }.unzip
+    val block = blocks.reduce((left, right) => left.append(right))
+
+    operands.foreach {
+      case operand: IntOperand => block.append(PushInt(operand))
+      case operand: FloatOperand => block.append(PushFloat(operand))
+      case operand: BoolOperand => block.append(PushBool(operand))
+      case operand: ReferenceOperand => block.append(PushReference(operand))
+    }
+
+    returnOperand match {
+      case operand: IntOperand => block.append(PtrCallFuncInt(operand, functionPtr))
+      case operand: FloatOperand => block.append(PtrCallFuncFloat(operand, functionPtr))
+      case operand: BoolOperand => block.append(PtrCallFuncBool(operand, functionPtr))
+      case operand: ReferenceOperand => block.append(PtrCallFuncReference(operand, functionPtr))
+      case _ => block.append(PtrCallFunc(functionPtr))
     }
     Pop(operands.size)
     block

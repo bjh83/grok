@@ -72,6 +72,13 @@ abstract class DefinitionTable {
     }
   }
 
+  def lookupSymbolGroup(key: Key): SymbolGroup[_, Key, SymbolDefinition[_, Key]] = {
+    symbolTable.find(_.contains(key.name)) match {
+      case Some(table) => table(key.name).asInstanceOf[SymbolGroup[_, Key, SymbolDefinition[_, Key]]]
+      case None => sys.error("No symbol, " + key.name + ", was declared")
+    }
+  }
+
   def containsSymbolFail(key: Key): Unit = if (!containsSymbol(key)) {
     sys.error("Does not contain symbol: " + key.name)
   }

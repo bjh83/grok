@@ -104,7 +104,14 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
   }
 
   protected def visitVariable(variable: Variable): Type = {
-    val declaration = definitionTable.lookupSymbol(VariableKey(variable.identifier))
+    val declaration: SymbolDefinition[_, Key] = definitionTable.lookupSymbolGroup(VariableKey(variable.identifier)) match {
+      case functionGroup: FinalFunctionGroup => functionGroup.map.values.toList match {
+        case List(functionDef) => functionDef
+        case _ => sys.error("Function definition is ambiguous.")
+      }
+      case variableGroup: VariableGroup => NormalVariableSymbolDefinition(variableGroup.variableDeclaration)
+      case _ => sys.error("Invalid symbol.")
+    }
     declaration.`type`
   }
 
@@ -177,7 +184,7 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
     val definition = definitionTable.lookupSymbol(key)
     val signature = definition.`type`
     localAssignLambdaType(functionCall.parameters, signature.asInstanceOf[FunctionType])
-    functionCall.functionDefinition = definition.asInstanceOf[FunctionSymbolDefinition].symbol
+    functionCall.functionDefinition = definition
     signature.asInstanceOf[FunctionType].returnType
   }
 
