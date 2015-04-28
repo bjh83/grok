@@ -5,6 +5,8 @@ import java.io.{FileInputStream, File}
 import org.antlr.v4.runtime.CommonTokenStream
 import org.antlr.v4.runtime.ANTLRInputStream
 
+import scala.collection.mutable
+
 /**
  * Created by brendan.
  */
@@ -40,7 +42,7 @@ class DefaultCompiler extends Compiler {
   }
 
   protected def compileSource(file: File): Unit = {
-    val ast = compileToAST(new ANTLRInputStream(new FileInputStream(file)))
+    val ast = mutable.MutableList(compileToAST(new ANTLRInputStream(new FileInputStream(file))): _*)
     val (symbolTable, builtInFunctions) = buildSymbolTable(ast)
     typeCheck(ast, symbolTable)
     val (code, functionTable) = generateIntermediateCode(ast ++ builtInFunctions)
@@ -54,18 +56,18 @@ class DefaultCompiler extends Compiler {
     buildAST(parser.compilationUnit())
   }
 
-  protected def buildSymbolTable(ast: List[TopLevelStatement]): (InitialDefinitionTable, List[FunctionDefinition]) = {
+  protected def buildSymbolTable(ast: mutable.MutableList[TopLevelStatement]): (InitialDefinitionTable, List[FunctionDefinition]) = {
     (new SemanticAnalyzer).visitAST(ast)
   }
 
-  protected def typeCheck(ast: List[TopLevelStatement], symbolTable: InitialDefinitionTable): Unit = {
+  protected def typeCheck(ast: mutable.MutableList[TopLevelStatement], symbolTable: InitialDefinitionTable): Unit = {
     val unionDefinitions = symbolTable.definitions.values.filter(_.isInstanceOf[UnionDefinition]).toSet.asInstanceOf[Set[UnionDefinition]]
     val structDefinitions = symbolTable.definitions.values.filter(_.isInstanceOf[StructDefinition]).toSet.asInstanceOf[Set[StructDefinition]]
     val typeTable = new TypeTableFactory(unionDefinitions, structDefinitions).build()
     (new TypeChecker).visitAST(ast, symbolTable.buildFinalDefinitionTable(), typeTable)
   }
 
-  protected def generateIntermediateCode(ast: List[TopLevelStatement]): (CodeBlock, Map[String, Label]) = {
+  protected def generateIntermediateCode(ast: mutable.MutableList[TopLevelStatement]): (CodeBlock, Map[String, Label]) = {
     (new CodeGenerator).visitAST(ast)
   }
 

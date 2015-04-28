@@ -75,7 +75,9 @@ sealed abstract class Expression {
 // Expression ::=
 case class Block(statements: List[Statement], expression: Option[Expression]) extends Expression
 
-case class Lambda(parameters: List[ParameterOptionalType], expression: Expression) extends Expression
+case class Lambda(parameters: List[ParameterOptionalType], expression: Expression) extends Expression {
+  var identifier: String = _
+}
 
 abstract class BooleanExpression extends Expression
 

@@ -9,7 +9,7 @@ class SemanticAnalyzer extends ASTVisitor[Unit, InitialDefinitionTable] {
   var definitionTable: InitialDefinitionTable = _
   var builtInFunctions = mutable.MutableList[FunctionDefinition]()
 
-  def visitAST(ast: List[TopLevelStatement]): (InitialDefinitionTable, List[FunctionDefinition]) = {
+  def visitAST(ast: mutable.MutableList[TopLevelStatement]): (InitialDefinitionTable, List[FunctionDefinition]) = {
     definitionTable = new InitialDefinitionTable
     addPrintFunctions()
     ast.foreach(visitTopLevelStatement)

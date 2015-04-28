@@ -48,6 +48,8 @@ class TypeTable(val table: Map[Type, Set[Type]]) {
       true
     } else if (base == TopType) {
       false
+    } else if (base == BottomType) {
+      true
     } else {
       val directlyDerived = table(base) - base
       directlyDerived.map(nextBase => derives(nextBase, derived)).foldLeft(false)((left, right) => left || right)

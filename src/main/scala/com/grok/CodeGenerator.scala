@@ -52,7 +52,7 @@ class CodeGenerator {
     }
   }
 
-  def visitAST(ast: List[TopLevelStatement]): (CodeBlock, Map[String, Label]) = {
+  def visitAST(ast: mutable.MutableList[TopLevelStatement]): (CodeBlock, Map[String, Label]) = {
     val block = ast
       .map(visitTopLevelStatement)
       .reduce((left, right) => left.append(right))
@@ -200,7 +200,7 @@ class CodeGenerator {
   }
 
   protected def visitLambda(lambda: Lambda, operand: Operand): CodeBlock = {
-    sys.error("Lambdas have not been implemented yet.")
+    CodeBlock(AssignReference(operand.asInstanceOf[ReferenceOperand], ReferenceRealOperand(lambda.identifier)))
   }
 
   protected def visitVariable(variable: Variable, operand: Operand): CodeBlock = {

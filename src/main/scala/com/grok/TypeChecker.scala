@@ -1,5 +1,6 @@
 package com.grok
 
+import scala.collection.mutable
 import scala.util.{Success, Try}
 
 /**
@@ -8,11 +9,14 @@ import scala.util.{Success, Try}
 class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
   var definitionTable: FinalDefinitionTable = _
   var typeTable: TypeTable = _
+  var lambdaCount = 0
+  val generatedFunctions = mutable.MutableList[FunctionDefinition]()
 
-  def visitAST(ast: List[TopLevelStatement], definitionTable: FinalDefinitionTable, typeTable: TypeTable): Unit = {
+  def visitAST(ast: mutable.MutableList[TopLevelStatement], definitionTable: FinalDefinitionTable, typeTable: TypeTable): Unit = {
     this.definitionTable = definitionTable
     this.typeTable = typeTable
     ast.foreach(visitTopLevelStatement)
+    ast ++= generatedFunctions
   }
 
   protected def visitFunctionDefinition(functionDefinition: FunctionDefinition): Type = {
@@ -113,6 +117,11 @@ class TypeChecker extends ASTVisitor[Type, FinalDefinitionTable] {
 
   private def assignLambdaType(lambda: Lambda, functionType: FunctionType): Unit = {
     lambda.`type` = functionType
+    val lambdaName = "$" + lambdaCount
+    lambdaCount += 1
+    val parameters = lambda.parameters.zip(functionType.parameters).map { case (param, actualType) => Parameter(param.identifier, actualType) }
+    generatedFunctions += FunctionDefinition(lambdaName, List(), parameters, functionType.returnType, lambda.expression)
+    lambda.identifier = lambdaName
   }
 
   private def assignLambdaType(lambdaTypeList: List[(Lambda, FunctionType)]): Unit = {
