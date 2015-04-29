@@ -66,7 +66,7 @@ You may now execute grok with the following command:
     $ grok [flags] [path_to_source]
 
 Where flags and path\_to\_source are the same as described under the section
-[Running](##Running).
+[Running](#Running).
 
 Note: you probably do not want to install grok on your system. Grok is currently
 under development and is **SUPER PRE-ALPHA** and so it is expected to change a
