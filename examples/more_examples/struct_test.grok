@@ -1,0 +1,12 @@
+struct Foo {
+  var foo: Int
+}
+
+func main(): Unit = {
+  val bar = Foo(0)
+  val baz = Foo(1)
+  println(baz.foo)
+  println(bar.foo)
+  bar.foo = 1
+  println(bar.foo)
+}

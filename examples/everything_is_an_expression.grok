@@ -1,0 +1,5 @@
+func do_nothing(): Unit = {}
+
+func main(): Unit = {
+  val result = do_nothing()
+}

@@ -1,0 +1,27 @@
+func main(): Unit = {
+  val fibSize = 5
+  print_sequence(fib, fibSize)
+}
+
+func print_sequence(generator: Int => Int, max: Int): Unit = {
+  var index = 0
+  while (index < max) {
+    println(generator(index))
+    index = index + 1
+  }
+}
+
+func fib(elem: Int): Int = {
+  var current = 0
+  var next = 1
+  var index = 0
+  while (index < elem) {
+    index = index + 1
+    var temp = next
+    next = next + current
+    current = temp
+    next
+  }
+  next
+}
+

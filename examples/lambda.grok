@@ -1,0 +1,12 @@
+func main(): Unit = {
+  val size = 5
+  print_sequence(num => num * 2, size)
+}
+
+func print_sequence(generator: Int => Int, max: Int): Unit = {
+  var index = 0
+  while (index < max) {
+    println(generator(index))
+    index = index + 1
+  }
+}

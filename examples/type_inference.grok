@@ -1,0 +1,6 @@
+func main(): Unit = {
+  val integer = 5
+  val float: Float = 5
+  println(integer)
+  println(float)
+}

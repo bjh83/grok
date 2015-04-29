@@ -1,0 +1,21 @@
+struct Foo {
+  var number: Int
+  var condition: Bool
+}
+
+union Bar {
+  Foo
+  Float
+}
+
+func to_number(bar: Bar): Float = {
+  match (bar) {
+    case foo: Foo => foo.number
+    case float: Float => float
+  }
+}
+
+func main(): Unit = {
+  var bar = Bar(1.8)
+  println(to_number(bar))
+}

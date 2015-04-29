@@ -1,0 +1,12 @@
+union Foo {
+  Bool
+  Int
+}
+
+func main(): Unit = {
+  val foo = Foo(5)
+  match(foo) {
+    case value: Bool => println(value)
+    case value: Int => println(value)
+  }
+}

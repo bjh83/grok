@@ -1,0 +1,5 @@
+func main(): Unit = {
+  var integer = 5
+  integer = 6
+  println(integer)
+}
