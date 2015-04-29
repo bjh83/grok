@@ -3,7 +3,7 @@ package com.grok
 import java.io.File
 
 /**
- * Created by brendan on 3/4/15.
+ * Created by brendan.
  */
 object Main {
   def main(args: Array[String]): Unit = {
@@ -14,10 +14,13 @@ object Main {
     compiler.compile(sources)
   }
 
+  val version = "0.1.2"
+
   def parseFlags(args: Seq[String]): (Flags, Seq[String]) = {
     val flags = new Flags
     val parseFlag: PartialFunction[(String, String), Boolean] = {
       case ("--compiler_type", value) => flags.compilerType = parseCompilerType(value); true
+      case ("--version", "") => println(version); sys.exit(0)
       case _ => false
     }
     (flags, args.filterNot(arg => parseFlag(splitFlag(arg))))
@@ -37,7 +40,9 @@ object Main {
   val parseCompilerType: PartialFunction[String, CompilerType] = {
     case "interpreter" => INTERPRETER
     case "default" => DEFAULT_COMPILER
+    case "tac" => TAC
     case "vm_compiler" => VM_COMPILER
+    case _ => sys.error("Compiler type unsupported.")
   }
 }
 

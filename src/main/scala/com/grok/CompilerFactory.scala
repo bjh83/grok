@@ -11,14 +11,14 @@ import scala.collection.mutable
  * Created by brendan.
  */
 object CompilerFactory {
-  def compiler(flags: Flags): Compiler = if (flags.compilerType == DEFAULT_COMPILER) {
-    new DefaultCompiler
-  } else if (flags.compilerType == INTERPRETER) {
-    new Interpreter
-  } else if (flags.compilerType == VM_COMPILER) {
-    new VMCompiler
-  } else {
-    sys.error("Compiler type unsupported.")
+  def compiler(flags: Flags): Compiler = {
+    flags.compilerType match {
+      case DEFAULT_COMPILER => new DefaultCompiler
+      case TAC => new DefaultCompiler
+      case INTERPRETER => new Interpreter
+      case VM_COMPILER => new VMCompiler
+      case _ => sys.error("Compiler type unsupported.")
+    }
   }
 }
 
@@ -30,6 +30,7 @@ sealed abstract class CompilerType
 case object DEFAULT_COMPILER extends CompilerType
 case object INTERPRETER extends CompilerType
 case object VM_COMPILER extends CompilerType
+case object TAC extends CompilerType
 
 class DefaultCompiler extends Compiler {
   private val buildAST = (new ASTBuilder).visit _
