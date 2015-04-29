@@ -55,18 +55,18 @@ If you are so inclined to install this on you system, you must first have java
 1.7 or higher installed on your machine. Next you must execute the following
 command.
 
-  $ sbt assembly
+    $ sbt assembly
 
 Now create a symlink to grok.sh in a desired bin folder:
 
-  $ ln -s /path/to/grok.sh /usr/bin/grok
+    $ ln -s /path/to/grok.sh /usr/bin/grok
 
 You may now execute grok with the following command:
 
-  $ grok [flags] [path_to_source]
+    $ grok [flags] [path_to_source]
 
 Where flags and path\_to\_source are the same as described under the section
-[Running](## Running).
+[Running](##Running).
 
 Note: you probably do not want to install grok on your system. Grok is currently
 under development and is **SUPER PRE-ALPHA** and so it is expected to change a
