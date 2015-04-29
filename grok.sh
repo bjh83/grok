@@ -20,4 +20,4 @@ cd "`dirname \"$PRG\"`" >&-
 APP_HOME="`pwd -P`"
 cd "$SAVED" >&-
 
-java -jar $APP_HOME/target/scala-2.11/grok-assembly-0.1.jar "$@"
+java -jar $APP_HOME/target/scala-2.11/grok-assembly-0.1.2.jar "$@"
