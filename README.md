@@ -75,7 +75,7 @@ very great deal in the near future. You have been warned.
 Language Specification
 ----------------------
 Grok now has a complete 
-[language specification](http://art.case.edu/395.S15/15%20final%20reports/9.EECS395.S2015.Higgins.final_report.pdf) 
+[language specification](http://bjh83.github.io/grok/specification.pdf) 
 for its current version (lambdas are not currently in the spec, but are mostly 
 supported).
 
